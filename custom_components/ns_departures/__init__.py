@@ -7,11 +7,10 @@ import asyncio
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import NSAuthError, NSClient, NSConnectionError
-from .const import DOMAIN, SUBENTRY_TYPE_DESTINATION
+from .const import SUBENTRY_TYPE_DESTINATION
 from .coordinator import NSConfigEntry, NSData, TripsCoordinator
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
@@ -39,7 +38,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: NSConfigEntry) -> bool:
         *(c.async_config_entry_first_refresh() for c in data.trips.values())
     )
     entry.runtime_data = data
-    _async_remove_departure_board(hass, entry)
 
     # Changing options or adding, changing or removing a destination reloads the entry.
     entry.async_on_unload(entry.add_update_listener(_async_reload))
@@ -49,13 +47,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: NSConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: NSConfigEntry) -> bool:
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-
-def _async_remove_departure_board(hass: HomeAssistant, entry: NSConfigEntry) -> None:
-    """Remove the station device and its departure board sensor from 0.2.0."""
-    registry = dr.async_get(hass)
-    if device := registry.async_get_device(identifiers={(DOMAIN, entry.entry_id)}):
-        registry.async_remove_device(device.id)
 
 
 async def _async_reload(hass: HomeAssistant, entry: NSConfigEntry) -> None:

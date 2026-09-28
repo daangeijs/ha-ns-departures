@@ -1,4 +1,4 @@
-<img src="custom_components/ns_departures/brand/icon.png" alt="NS" width="96" align="right">
+<img src="https://raw.githubusercontent.com/daangeijs/ha-ns-departures/main/custom_components/ns_departures/brand/icon.png" alt="NS" width="96" align="right">
 
 # NS Departures
 

@@ -6,7 +6,6 @@ import pytest
 from homeassistant.config_entries import SOURCE_USER, ConfigSubentryData
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
@@ -176,19 +175,3 @@ async def test_options_rate_limit(hass: HomeAssistant, ns_api: AiohttpClientMock
     )
     assert result["errors"] == {CONF_SCAN_INTERVAL: "rate_limit"}
 
-
-async def test_removes_departure_board_from_0_2(
-    hass: HomeAssistant, ns_api: AiohttpClientMocker
-) -> None:
-    entry = _entry()
-    entry.add_to_hass(hass)
-    device = dr.async_get(hass).async_get_or_create(
-        config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.entry_id)}
-    )
-    er.async_get(hass).async_get_or_create(
-        "sensor", DOMAIN, f"{entry.entry_id}_departures",
-        config_entry=entry, device_id=device.id,
-    )
-    await _setup(hass, entry)
-    assert dr.async_get(hass).async_get(device.id) is None
-    assert er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{entry.entry_id}_departures") is None
