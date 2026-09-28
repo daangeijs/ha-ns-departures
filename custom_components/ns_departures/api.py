@@ -7,7 +7,7 @@ from typing import Any
 
 import aiohttp
 
-from .models import Departure, Station, Trip
+from .models import Station, Trip
 
 BASE_URL = "https://gateway.apiportal.ns.nl/reisinformatie-api/api"
 TIMEOUT = aiohttp.ClientTimeout(total=15)
@@ -50,12 +50,6 @@ class NSClient:
     async def stations(self) -> list[Station]:
         data = await self._get("v2/stations")
         return [Station.from_api(item) for item in data["payload"]]
-
-    async def departures(self, station_code: str) -> list[Departure]:
-        data = await self._get(
-            "v2/departures", {"station": station_code, "maxJourneys": 40}
-        )
-        return [Departure.from_board(item) for item in data["payload"]["departures"]]
 
     async def trips(
         self, from_code: str, to_code: str, after: datetime | None = None

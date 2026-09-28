@@ -43,7 +43,7 @@ class Station:
 
 @dataclass(frozen=True, slots=True)
 class Departure:
-    """A train leaving the station: from the departure board or a planned trip."""
+    """The train you board at your station: the first leg of a trip."""
 
     direction: str
     train_category: str
@@ -54,26 +54,6 @@ class Departure:
     actual_track: str | None
     cancelled: bool
     messages: tuple[str, ...]
-
-    @classmethod
-    def from_board(cls, data: dict[str, Any]) -> Departure:
-        """Parse an item of the /departures response."""
-        product = data.get("product", {})
-        planned = datetime.fromisoformat(data["plannedDateTime"])
-        planned_track = data.get("plannedTrack")
-        return cls(
-            direction=data["direction"],
-            train_category=data.get("trainCategory", ""),
-            train_number=product.get("number", ""),
-            planned=planned,
-            actual=_parse_time(data.get("actualDateTime")) or planned,
-            planned_track=planned_track,
-            actual_track=data.get("actualTrack") or planned_track,
-            cancelled=data.get("cancelled", False),
-            messages=tuple(
-                m["message"] for m in data.get("messages", []) if m.get("message")
-            ),
-        )
 
     @classmethod
     def from_leg(cls, leg: dict[str, Any], trip_messages: tuple[str, ...]) -> Departure:

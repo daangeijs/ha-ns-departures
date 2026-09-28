@@ -10,7 +10,7 @@
       },
       "station": {
         "title": "Vertrekstation",
-        "description": "Kies het station waar je vertrekt. Dit krijgt een vertrekbord met de eerstvolgende treinen, zoals de schermen op het perron.\n\nDaarna kun je met **Bestemming volgen** de eerstvolgende trein vanaf dit station naar een bepaald station zien, ook als je moet overstappen.",
+        "description": "Kies het station waar je vertrekt. Daarna voeg je met **Bestemming volgen** de stations toe waar je naartoe reist. Elke bestemming toont de eerstvolgende trein vanaf dit station die je daar brengt.",
         "data": {
           "station": "Station"
         }
@@ -36,7 +36,7 @@
     "step": {
       "init": {
         "title": "Update-interval",
-        "description": "NS staat **{limit} verzoeken per 5 minuten** per API-key toe, gedeeld door alle stations die de key gebruiken. Dit station doet **{requests}** verzoeken per update (het vertrekbord plus één per gevolgde bestemming). Met het huidige interval gebruiken al je stations samen ongeveer **{usage}** verzoeken per 5 minuten.",
+        "description": "NS staat **{limit} verzoeken per 5 minuten** per API-key toe, gedeeld door alle stations die de key gebruiken. Dit station doet **{requests}** verzoeken per update (één per gevolgde bestemming). Met het huidige interval gebruiken al je stations samen ongeveer **{usage}** verzoeken per 5 minuten.",
         "data": {
           "scan_interval": "Update elke"
         },
@@ -93,13 +93,6 @@
   },
   "entity": {
     "sensor": {
-      "departure_board": {
-        "name": "Vertrekbord",
-        "unit_of_measurement": "treinen"
-      },
-      "board_row": {
-        "name": "Vertrek {number}"
-      },
       "departure": {
         "name": "Vertrek"
       },

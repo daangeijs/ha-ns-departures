@@ -5,19 +5,18 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![Validate](https://img.shields.io/github/actions/workflow/status/daangeijs/ha-ns-departures/validate.yml?style=for-the-badge&label=validate)](https://github.com/daangeijs/ha-ns-departures/actions/workflows/validate.yml)
 
-This Home Assistant integration shows live train departures from Dutch railway (NS) stations. For every station
-you add, you get the full departure board, like the station page on ns.nl. On top of that you can follow
-destinations: for each one, sensors show the next train that gets you there, including delay, track changes,
-and cancellations.
+This Home Assistant integration shows the next train from your station to the destinations you choose, using
+live data from the Dutch railways (NS). For every destination, sensors show when the train leaves, where it is
+heading, the delay, the track (and whether it changed), and whether it runs at all.
 
 ## Features
 
-- Departure board for each station: every upcoming train, and the first train to each destination.
-- Follow as many destinations per station as you like.
+- Follow as many destinations per station as you like, and add as many stations as you like.
 - The next train to a destination comes from the NS journey planner, the same one as on ns.nl. It includes
   trains that need a transfer, or you can limit it to direct trains.
 - Always shows the very next train, even when that one leaves tomorrow morning.
-- Planned time, expected time, and delay in minutes.
+- Planned time, expected time, delay in minutes, and arrival time.
+- The final destination of the train you board, as shown on the station screens.
 - Track, with a separate sensor that turns on when the track changes.
 - Status (on time, delayed, cancelled) and the NS message, such as the reason a train is cancelled.
 - Adjustable update interval, with a check that you stay within the NS limit.
@@ -71,8 +70,6 @@ Setup has three parts: your API key, a station, and the destinations you want to
 2. Paste your API key.
 3. Choose the station you want to see departures for.
 
-The station is added right away as a departure board: the next 5 trains, each as a readable sensor such as
-`08:01 +4 Rotterdam Centraal · track 4 (was 3)`.
 To add another station, add the integration again. It remembers your API key.
 
 ### 2. Follow destinations
@@ -92,40 +89,20 @@ next to it.
 
 Open the station and click **Configure** to set how often it updates. The default is every 60 seconds.
 
-NS allows **300 requests per 5 minutes** per API key. Every update of a station uses 1 request for the
-departure board, plus 1 request for each destination you follow. Some examples:
+NS allows **300 requests per 5 minutes** per API key. Every update uses 1 request per destination you follow.
+Some examples:
 
-| Stations × destinations | Interval | Requests per 5 minutes |
+| Destinations | Interval | Requests per 5 minutes |
 | --- | --- | --- |
-| 1 station, 3 destinations | 60 s | 20 |
-| 1 station, 3 destinations | 15 s | 80 |
-| 3 stations, 5 destinations each | 30 s | 180 |
+| 3 | 60 s | 15 |
+| 3 | 15 s | 60 |
+| 15 (over several stations) | 30 s | 150 |
 
 The form shows how many requests all stations using your key make together. If a shorter interval would push
 you over the limit, it tells you so. Late at night a destination can occasionally need a few extra requests,
 because the integration searches ahead until it finds the next train.
 
 ## Entities
-
-### Station
-
-| Entity | Example | Description |
-| --- | --- | --- |
-| `sensor.<station>_departure_1` … `_5` | `08:01 +4 Rotterdam Centraal · track 4 (was 3)` | The next 5 trains, like the screens on the platform: planned time, delay, final destination, and track. A track change shows the old track; a cancelled train shows `cancelled`. |
-| `sensor.<station>_departure_board` | `20` | Number of upcoming trains on the board, with the full board as attributes. |
-
-Each `departure_N` sensor has the details as attributes: `planned`, `actual`, `delay`, `track`,
-`planned_track`, `track_changed`, `direction`, `train`, `status`, and `message`.
-
-The `departure_board` sensor has two attributes for dashboards:
-
-- `departures`: the next 20 trains, with the same fields.
-- `next_by_destination`: the first train to each destination on the board, keyed by destination.
-
-The words *track* and *cancelled* in the readable text follow your Home Assistant language (Dutch: *spoor*,
-*rijdt niet*).
-
-### Followed destination
 
 | Entity | Example | Description |
 | --- | --- | --- |
@@ -153,37 +130,6 @@ and why, instead of it quietly disappearing.
 ## Examples
 
 Replace `station` and `destination` in the entity IDs with your own.
-
-### Dashboard: departure board
-
-The quickest option is an entities card with the 5 departure sensors:
-
-```yaml
-type: entities
-title: Departures
-entities:
-  - sensor.station_departure_1
-  - sensor.station_departure_2
-  - sensor.station_departure_3
-  - sensor.station_departure_4
-  - sensor.station_departure_5
-```
-
-Or a table with more trains:
-
-```yaml
-type: markdown
-title: Departures
-content: |
-  | Time | | To | Track |
-  |:--|:--|:--|:--|
-  {% for d in state_attr('sensor.station_departure_board', 'departures')[:10] %}
-  {%- set time = as_timestamp(d.planned) | timestamp_custom('%H:%M') %}
-  {%- set info = '❌' if d.status == 'cancelled' else ('+' ~ d.delay if d.delay else '') %}
-  {%- set track = '**' ~ d.track ~ '** ⚠️' if d.track_changed else d.track %}
-  | {{ time }} | {{ info }} | {{ d.direction }} | {{ track }} |
-  {% endfor %}
-```
 
 ### Dashboard: next train to a destination
 

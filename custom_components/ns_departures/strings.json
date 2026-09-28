@@ -10,7 +10,7 @@
       },
       "station": {
         "title": "Departure station",
-        "description": "Pick the station you leave from. It gets a departure board with the next trains, like the screens on the platform.\n\nAfter that, use **Follow a destination** to see the next train from this station to a specific station, including trains with a transfer.",
+        "description": "Pick the station you leave from. After that, use **Follow a destination** to add the stations you travel to. Each destination shows the next train from this station that gets you there.",
         "data": {
           "station": "Station"
         }
@@ -36,7 +36,7 @@
     "step": {
       "init": {
         "title": "Update interval",
-        "description": "NS allows **{limit} requests per 5 minutes** per API key, shared by every station that uses the key. This station makes **{requests}** requests per update (its departure board plus one per followed destination). At the current interval, all your stations together use about **{usage}** requests per 5 minutes.",
+        "description": "NS allows **{limit} requests per 5 minutes** per API key, shared by every station that uses the key. This station makes **{requests}** requests per update (one per followed destination). At the current interval, all your stations together use about **{usage}** requests per 5 minutes.",
         "data": {
           "scan_interval": "Update every"
         },
@@ -93,13 +93,6 @@
   },
   "entity": {
     "sensor": {
-      "departure_board": {
-        "name": "Departure board",
-        "unit_of_measurement": "trains"
-      },
-      "board_row": {
-        "name": "Departure {number}"
-      },
       "departure": {
         "name": "Departure"
       },

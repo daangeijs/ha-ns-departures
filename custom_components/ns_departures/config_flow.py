@@ -171,8 +171,8 @@ class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 def _requests_per_update(entry: ConfigEntry) -> int:
-    """The departure board plus one request per followed destination."""
-    return 1 + sum(
+    """One request per followed destination."""
+    return sum(
         1 for s in entry.subentries.values() if s.subentry_type == SUBENTRY_TYPE_DESTINATION
     )
 

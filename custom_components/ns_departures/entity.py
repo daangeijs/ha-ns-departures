@@ -1,4 +1,4 @@
-"""Devices and the base entity shared by the platforms."""
+"""Device and base entity for a followed destination."""
 
 from __future__ import annotations
 
@@ -11,17 +11,6 @@ from .coordinator import NSConfigEntry, TripsCoordinator
 from .models import Trip
 
 
-def station_device(entry: NSConfigEntry) -> DeviceInfo:
-    """The station itself, holding the departure board sensor."""
-    return DeviceInfo(
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=entry.title,
-        manufacturer="NS",
-        model="Departure board",
-        entry_type=DeviceEntryType.SERVICE,
-    )
-
-
 def destination_device(entry: NSConfigEntry, subentry: ConfigSubentry) -> DeviceInfo:
     """A followed destination, e.g. `Amsterdam Zuid`."""
     return DeviceInfo(
@@ -30,7 +19,6 @@ def destination_device(entry: NSConfigEntry, subentry: ConfigSubentry) -> Device
         manufacturer="NS",
         model=f"Next train from {entry.title} to {subentry.title}",
         entry_type=DeviceEntryType.SERVICE,
-        via_device=(DOMAIN, entry.entry_id),
     )
 
 

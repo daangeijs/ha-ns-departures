@@ -22,7 +22,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     MAX_TRIP_PAGES,
 )
-from .models import Departure, Station, Trip
+from .models import Station, Trip
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry, ConfigSubentry
@@ -36,7 +36,6 @@ class NSData:
 
     client: NSClient
     stations: dict[str, Station]
-    board: DepartureBoardCoordinator
     trips: dict[str, TripsCoordinator] = field(default_factory=dict)
 
 
@@ -54,39 +53,6 @@ async def _fetch[T](request: Awaitable[T]) -> T:
         raise ConfigEntryAuthFailed(str(err)) from err
     except NSConnectionError as err:
         raise UpdateFailed(str(err)) from err
-
-
-class DepartureBoardCoordinator(DataUpdateCoordinator[list[Departure]]):
-    """All departures from the station, as on the departure board."""
-
-    config_entry: NSConfigEntry
-
-    def __init__(self, hass: HomeAssistant, entry: NSConfigEntry, client: NSClient) -> None:
-        super().__init__(
-            hass,
-            _LOGGER,
-            config_entry=entry,
-            name=f"NS departures {entry.data[CONF_STATION]}",
-            update_interval=_update_interval(entry),
-        )
-        self._client = client
-
-    async def _async_update_data(self) -> list[Departure]:
-        return await _fetch(self._client.departures(self.config_entry.data[CONF_STATION]))
-
-    @property
-    def upcoming(self) -> list[Departure]:
-        """Departures that have not left yet."""
-        now = dt_util.utcnow()
-        return [d for d in self.data or [] if d.actual >= now]
-
-    @property
-    def next_by_destination(self) -> dict[str, Departure]:
-        """The first upcoming train to each destination on the board."""
-        first: dict[str, Departure] = {}
-        for departure in self.upcoming:
-            first.setdefault(departure.direction, departure)
-        return first
 
 
 class TripsCoordinator(DataUpdateCoordinator[list[Trip]]):
