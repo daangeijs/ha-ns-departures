@@ -1,0 +1,269 @@
+{
+  "payload": {
+    "source": "DVS",
+    "departures": [
+      {
+        "direction": "Amsterdam Centraal",
+        "name": "NS  3084",
+        "plannedDateTime": "2026-09-28T23:40:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-28T23:47:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "3",
+        "actualTrack": "4",
+        "product": {
+          "number": "3084",
+          "categoryCode": "IC",
+          "shortCategoryName": "NS Intercity",
+          "longCategoryName": "Intercity",
+          "operatorName": "NS",
+          "operatorCode": "NS",
+          "type": "TRAIN"
+        },
+        "trainCategory": "IC",
+        "cancelled": false,
+        "routeStations": [
+          {
+            "uicCode": "8400637",
+            "mediumName": "De Klomp"
+          },
+          {
+            "uicCode": "8400182",
+            "mediumName": "Driebergen-Zeist"
+          },
+          {
+            "uicCode": "8400621",
+            "mediumName": "Utrecht C."
+          },
+          {
+            "uicCode": "8400057",
+            "mediumName": "Amstel"
+          }
+        ],
+        "messages": [],
+        "departureStatus": "UNKNOWN"
+      },
+      {
+        "direction": "Nijmegen",
+        "name": "NS  3085",
+        "plannedDateTime": "2026-09-28T23:50:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-28T23:50:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "4",
+        "actualTrack": "4",
+        "product": {
+          "number": "3085",
+          "categoryCode": "IC",
+          "shortCategoryName": "NS Intercity",
+          "longCategoryName": "Intercity",
+          "operatorName": "NS",
+          "operatorCode": "NS",
+          "type": "TRAIN"
+        },
+        "trainCategory": "IC",
+        "cancelled": true,
+        "routeStations": [
+          {
+            "uicCode": "8400071",
+            "mediumName": "Arnhem C."
+          }
+        ],
+        "messages": [
+          {
+            "message": "Rijdt niet door een seinstoring",
+            "style": "WARNING"
+          }
+        ],
+        "departureStatus": "UNKNOWN"
+      },
+      {
+        "direction": "Amersfoort Centraal",
+        "name": "RRReis K 31374",
+        "plannedDateTime": "2026-09-28T23:53:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-28T23:53:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "1",
+        "actualTrack": "1",
+        "product": {
+          "number": "31374",
+          "lineNumber": "RS34",
+          "categoryCode": "SPR",
+          "shortCategoryName": "RRReis K Sprinter",
+          "longCategoryName": "Sprinter",
+          "operatorName": "RRReis K",
+          "operatorCode": "RRReis K",
+          "type": "TRAIN"
+        },
+        "trainCategory": "SPR",
+        "cancelled": false,
+        "routeStations": [
+          {
+            "uicCode": "8400201",
+            "mediumName": "Ede C."
+          },
+          {
+            "uicCode": "8400405",
+            "mediumName": "Lunteren"
+          },
+          {
+            "uicCode": "8400115",
+            "mediumName": "Barneveld Zuid"
+          },
+          {
+            "uicCode": "8400091",
+            "mediumName": "Barneveld C."
+          }
+        ],
+        "messages": [],
+        "departureStatus": "UNKNOWN"
+      },
+      {
+        "direction": "Amsterdam Centraal",
+        "name": "NS  3086",
+        "plannedDateTime": "2026-09-29T00:10:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-29T00:10:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "3",
+        "actualTrack": "3",
+        "product": {
+          "number": "3086",
+          "categoryCode": "IC",
+          "shortCategoryName": "NS Intercity",
+          "longCategoryName": "Intercity",
+          "operatorName": "NS",
+          "operatorCode": "NS",
+          "type": "TRAIN"
+        },
+        "trainCategory": "IC",
+        "cancelled": false,
+        "routeStations": [
+          {
+            "uicCode": "8400637",
+            "mediumName": "De Klomp"
+          },
+          {
+            "uicCode": "8400182",
+            "mediumName": "Driebergen-Zeist"
+          },
+          {
+            "uicCode": "8400621",
+            "mediumName": "Utrecht C."
+          },
+          {
+            "uicCode": "8400057",
+            "mediumName": "Amstel"
+          }
+        ],
+        "messages": [],
+        "departureStatus": "UNKNOWN"
+      },
+      {
+        "direction": "Nijmegen",
+        "name": "NS  3087",
+        "plannedDateTime": "2026-09-29T00:20:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-29T00:20:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "5",
+        "actualTrack": "5",
+        "product": {
+          "number": "3087",
+          "categoryCode": "IC",
+          "shortCategoryName": "NS Intercity",
+          "longCategoryName": "Intercity",
+          "operatorName": "NS",
+          "operatorCode": "NS",
+          "type": "TRAIN"
+        },
+        "trainCategory": "IC",
+        "cancelled": false,
+        "routeStations": [
+          {
+            "uicCode": "8400071",
+            "mediumName": "Arnhem C."
+          }
+        ],
+        "messages": [],
+        "departureStatus": "UNKNOWN"
+      },
+      {
+        "direction": "Amersfoort Centraal",
+        "name": "RRReis K 31376",
+        "plannedDateTime": "2026-09-29T00:23:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-29T00:23:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "1",
+        "actualTrack": "1",
+        "product": {
+          "number": "31376",
+          "lineNumber": "RS34",
+          "categoryCode": "SPR",
+          "shortCategoryName": "RRReis K Sprinter",
+          "longCategoryName": "Sprinter",
+          "operatorName": "RRReis K",
+          "operatorCode": "RRReis K",
+          "type": "TRAIN"
+        },
+        "trainCategory": "SPR",
+        "cancelled": false,
+        "routeStations": [
+          {
+            "uicCode": "8400201",
+            "mediumName": "Ede C."
+          },
+          {
+            "uicCode": "8400405",
+            "mediumName": "Lunteren"
+          },
+          {
+            "uicCode": "8400115",
+            "mediumName": "Barneveld Zuid"
+          },
+          {
+            "uicCode": "8400091",
+            "mediumName": "Barneveld C."
+          }
+        ],
+        "messages": [],
+        "departureStatus": "UNKNOWN"
+      },
+      {
+        "direction": "Arnhem Centraal",
+        "name": "NS  7589",
+        "plannedDateTime": "2026-09-29T00:29:00+0200",
+        "plannedTimeZoneOffset": 120,
+        "actualDateTime": "2026-09-29T00:29:00+0200",
+        "actualTimeZoneOffset": 120,
+        "plannedTrack": "4",
+        "actualTrack": "4",
+        "product": {
+          "number": "7589",
+          "categoryCode": "SPR",
+          "shortCategoryName": "NS Sprinter",
+          "longCategoryName": "Sprinter",
+          "operatorName": "NS",
+          "operatorCode": "NS",
+          "type": "TRAIN"
+        },
+        "trainCategory": "SPR",
+        "cancelled": false,
+        "routeStations": [
+          {
+            "uicCode": "8400704",
+            "mediumName": "Wolfheze"
+          },
+          {
+            "uicCode": "8400489",
+            "mediumName": "Oosterbeek"
+          }
+        ],
+        "messages": [],
+        "departureStatus": "UNKNOWN"
+      }
+    ]
+  }
+}

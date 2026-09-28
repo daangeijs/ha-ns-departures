@@ -1,0 +1,107 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "NS API-key",
+        "description": "Vul je NS API-key in (de primary key van je **Ns-App** abonnement op [apiportal.ns.nl](https://apiportal.ns.nl)).",
+        "data": {
+          "api_key": "API-key"
+        }
+      },
+      "station": {
+        "title": "Vertrekstation",
+        "description": "Kies het station waar je vertrekt. Daarna voeg je de treinen toe die je wilt volgen.",
+        "data": {
+          "station": "Station"
+        }
+      },
+      "reauth_confirm": {
+        "title": "NS API-key geweigerd",
+        "description": "NS accepteert de opgeslagen API-key niet meer. Vul een nieuwe in.",
+        "data": {
+          "api_key": "API-key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "De API-key is geweigerd. Controleer of je de key van het Ns-App abonnement hebt gekopieerd.",
+      "cannot_connect": "Kan de NS API niet bereiken."
+    },
+    "abort": {
+      "already_configured": "Dit station is al toegevoegd.",
+      "reauth_successful": "API-key bijgewerkt."
+    }
+  },
+  "config_subentries": {
+    "line": {
+      "initiate_flow": {
+        "user": "Trein volgen"
+      },
+      "entry_type": "Gevolgde trein",
+      "step": {
+        "user": {
+          "title": "Trein volgen vanaf {station}",
+          "description": "Kies een of meer bestemmingen. De sensoren tonen de eerste trein vanaf {station} die naar een van die bestemmingen gaat.\n\nNu op het vertrekbord: {departing}",
+          "data": {
+            "name": "Naam",
+            "destinations": "Bestemmingen",
+            "include_via": "Ook treinen die onderweg bij een bestemming stoppen"
+          },
+          "data_description": {
+            "name": "Gebruikt voor de apparaat- en entiteitsnamen, bijv. \"Den Helder\".",
+            "destinations": "Wordt vergeleken met de eindbestemming van elke trein.",
+            "include_via": "Uit: alleen treinen die eindigen op een bestemming. Aan: ook treinen die er langs komen, bijv. kies Utrecht Centraal voor elke trein naar Utrecht."
+          }
+        },
+        "reconfigure": {
+          "title": "Gevolgde trein wijzigen",
+          "description": "Nu op het vertrekbord van {station}: {departing}",
+          "data": {
+            "name": "Naam",
+            "destinations": "Bestemmingen",
+            "include_via": "Ook treinen die onderweg bij een bestemming stoppen"
+          }
+        }
+      },
+      "error": {
+        "no_destinations": "Kies minstens één bestemming."
+      },
+      "abort": {
+        "entry_not_loaded": "Het station is niet geladen. Controleer de integratie op fouten en probeer het opnieuw.",
+        "reconfigure_successful": "Gevolgde trein bijgewerkt."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "departure": {
+        "name": "Vertrek"
+      },
+      "planned_departure": {
+        "name": "Gepland vertrek"
+      },
+      "delay": {
+        "name": "Vertraging"
+      },
+      "track": {
+        "name": "Spoor"
+      },
+      "status": {
+        "name": "Status",
+        "state": {
+          "on_time": "Op tijd",
+          "delayed": "Vertraagd",
+          "cancelled": "Rijdt niet"
+        }
+      },
+      "message": {
+        "name": "Melding"
+      }
+    },
+    "binary_sensor": {
+      "track_changed": {
+        "name": "Spoorwijziging"
+      }
+    }
+  }
+}
