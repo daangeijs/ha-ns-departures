@@ -28,7 +28,7 @@ def destination_device(entry: NSConfigEntry, subentry: ConfigSubentry) -> Device
         identifiers={(DOMAIN, subentry.subentry_id)},
         name=subentry.title,
         manufacturer="NS",
-        model=f"Trains from {entry.title}",
+        model=f"Next train from {entry.title} to {subentry.title}",
         entry_type=DeviceEntryType.SERVICE,
         via_device=(DOMAIN, entry.entry_id),
     )

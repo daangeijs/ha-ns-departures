@@ -10,7 +10,7 @@
       },
       "station": {
         "title": "Departure station",
-        "description": "Pick the station you want to see departures for. Afterwards you can add the destinations you want to follow from this station.",
+        "description": "Pick the station you leave from. It gets a departure board with the next trains, like the screens on the platform.\n\nAfter that, use **Follow a destination** to see the next train from this station to a specific station, including trains with a transfer.",
         "data": {
           "station": "Station"
         }
@@ -54,11 +54,11 @@
       "initiate_flow": {
         "user": "Follow a destination"
       },
-      "entry_type": "Destination",
+      "entry_type": "Next train to",
       "step": {
         "user": {
           "title": "Follow a destination from {station}",
-          "description": "The sensors show the next train from {station} that gets you to this destination, just like the journey planner on ns.nl. If there is no train anymore today, you get the first one tomorrow.",
+          "description": "Pick the station you want to travel to from {station}. The sensors then show the next train from {station} that gets you there, like the journey planner on ns.nl: departure time, delay, track, the train's final destination, and arrival time. If no train runs anymore today, you see the first one tomorrow.",
           "data": {
             "destination": "Destination",
             "direct_only": "Direct trains only"
@@ -93,11 +93,18 @@
   },
   "entity": {
     "sensor": {
-      "departures": {
-        "name": "Departures"
+      "departure_board": {
+        "name": "Departure board",
+        "unit_of_measurement": "trains"
+      },
+      "board_row": {
+        "name": "Departure {number}"
       },
       "departure": {
         "name": "Departure"
+      },
+      "direction": {
+        "name": "Train direction"
       },
       "planned_departure": {
         "name": "Planned departure"

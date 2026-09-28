@@ -19,10 +19,10 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import BOARD_COUNT, UPCOMING_COUNT
+from .const import BOARD_COUNT, BOARD_ROWS, UPCOMING_COUNT
 from .coordinator import DepartureBoardCoordinator, NSConfigEntry, TripsCoordinator
 from .entity import FollowedEntity, station_device
-from .models import DepartureStatus, Trip
+from .models import Departure, DepartureStatus, Trip
 
 MAX_STATE_LENGTH = 255
 NO_MESSAGE = "None"
@@ -45,6 +45,11 @@ TRIP_SENSORS: tuple[NSTripSensorDescription, ...] = (
             "transfers": t.transfers,
             "route": list(t.route),
         },
+    ),
+    NSTripSensorDescription(
+        key="direction",
+        value_fn=lambda t: t.departure.direction,
+        attrs_fn=lambda t: {"train": t.departure.train},
     ),
     NSTripSensorDescription(
         key="planned_departure",
@@ -93,7 +98,12 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     data = entry.runtime_data
-    async_add_entities([DepartureBoardSensor(data.board)])
+    async_add_entities(
+        [
+            DepartureBoardSensor(data.board),
+            *(BoardRowSensor(data.board, i) for i in range(BOARD_ROWS)),
+        ]
+    )
     for subentry_id, coordinator in data.trips.items():
         subentry = entry.subentries[subentry_id]
         async_add_entities(
@@ -102,23 +112,52 @@ async def async_setup_entry(
         )
 
 
-class DepartureBoardSensor(CoordinatorEntity[DepartureBoardCoordinator], SensorEntity):
-    """Next departure from the station, with the full board as attribute."""
+# Words used in the readable departure text. Entity states cannot be
+# translated by Home Assistant, so pick them from the configured language.
+WORDS = {
+    "en": {"track": "track", "was": "was", "cancelled": "cancelled"},
+    "nl": {"track": "spoor", "was": "was", "cancelled": "rijdt niet"},
+}
 
+
+def departure_text(departure: Departure, language: str) -> str:
+    """One departure board row, e.g. `08:01 +4 Rotterdam Centraal · track 4 (was 3)`."""
+    words = WORDS.get(language.split("-")[0], WORDS["en"])
+    parts = [departure.planned.strftime("%H:%M")]
+    if departure.delay_minutes and not departure.cancelled:
+        parts.append(f"+{departure.delay_minutes}")
+    parts.append(departure.direction)
+    text = " ".join(parts)
+    if departure.cancelled:
+        return f"{text} · {words['cancelled']}"
+    if departure.actual_track:
+        text += f" · {words['track']} {departure.actual_track}"
+        if departure.track_changed:
+            text += f" ({words['was']} {departure.planned_track})"
+    return text
+
+
+class BoardEntity(CoordinatorEntity[DepartureBoardCoordinator], SensorEntity):
     _attr_has_entity_name = True
-    _attr_translation_key = "departures"
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
 
-    def __init__(self, coordinator: DepartureBoardCoordinator) -> None:
+    def __init__(self, coordinator: DepartureBoardCoordinator, key: str) -> None:
         super().__init__(coordinator)
         entry = coordinator.config_entry
-        self._attr_unique_id = f"{entry.entry_id}_departures"
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = station_device(entry)
 
+
+class DepartureBoardSensor(BoardEntity):
+    """Number of upcoming trains, with the full board as attributes."""
+
+    _attr_translation_key = "departure_board"
+
+    def __init__(self, coordinator: DepartureBoardCoordinator) -> None:
+        super().__init__(coordinator, "departures")
+
     @property
-    def native_value(self) -> datetime | None:
-        upcoming = self.coordinator.upcoming
-        return upcoming[0].actual if upcoming else None
+    def native_value(self) -> int:
+        return len(self.coordinator.upcoming[:BOARD_COUNT])
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -129,6 +168,32 @@ class DepartureBoardSensor(CoordinatorEntity[DepartureBoardCoordinator], SensorE
                 for direction, d in self.coordinator.next_by_destination.items()
             },
         }
+
+
+class BoardRowSensor(BoardEntity):
+    """The n-th upcoming train, as a readable line like on the station screens."""
+
+    _attr_translation_key = "board_row"
+
+    def __init__(self, coordinator: DepartureBoardCoordinator, index: int) -> None:
+        super().__init__(coordinator, f"departure_{index + 1}")
+        self._index = index
+        self._attr_translation_placeholders = {"number": str(index + 1)}
+
+    @property
+    def _departure(self) -> Departure | None:
+        upcoming = self.coordinator.upcoming
+        return upcoming[self._index] if self._index < len(upcoming) else None
+
+    @property
+    def native_value(self) -> str | None:
+        departure = self._departure
+        return departure_text(departure, self.hass.config.language) if departure else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        departure = self._departure
+        return departure.as_dict() if departure else None
 
 
 class TripSensor(FollowedEntity, SensorEntity):

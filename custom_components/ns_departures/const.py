@@ -22,4 +22,6 @@ MAX_TRIP_PAGES = 6
 
 # Size of the list attributes; keeps them well below the recorder's 16 kB limit.
 BOARD_COUNT = 20
+# Upcoming trains shown as separate, readable sensors on the station device.
+BOARD_ROWS = 5
 UPCOMING_COUNT = 5

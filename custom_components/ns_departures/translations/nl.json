@@ -10,7 +10,7 @@
       },
       "station": {
         "title": "Vertrekstation",
-        "description": "Kies het station waarvan je de vertrektijden wilt zien. Daarna kun je bestemmingen toevoegen die je vanaf dit station wilt volgen.",
+        "description": "Kies het station waar je vertrekt. Dit krijgt een vertrekbord met de eerstvolgende treinen, zoals de schermen op het perron.\n\nDaarna kun je met **Bestemming volgen** de eerstvolgende trein vanaf dit station naar een bepaald station zien, ook als je moet overstappen.",
         "data": {
           "station": "Station"
         }
@@ -54,11 +54,11 @@
       "initiate_flow": {
         "user": "Bestemming volgen"
       },
-      "entry_type": "Bestemming",
+      "entry_type": "Eerstvolgende trein naar",
       "step": {
         "user": {
           "title": "Bestemming volgen vanaf {station}",
-          "description": "De sensoren tonen de eerstvolgende trein vanaf {station} die je naar deze bestemming brengt, net als de reisplanner op ns.nl. Rijdt er vandaag niets meer, dan zie je de eerste trein van morgen.",
+          "description": "Kies het station waar je vanaf {station} naartoe wilt. De sensoren tonen dan de eerstvolgende trein vanaf {station} die je daar brengt, zoals de reisplanner op ns.nl: vertrektijd, vertraging, spoor, eindbestemming van de trein en aankomsttijd. Rijdt er vandaag niets meer, dan zie je de eerste trein van morgen.",
           "data": {
             "destination": "Bestemming",
             "direct_only": "Alleen directe treinen"
@@ -93,11 +93,18 @@
   },
   "entity": {
     "sensor": {
-      "departures": {
-        "name": "Vertrektijden"
+      "departure_board": {
+        "name": "Vertrekbord",
+        "unit_of_measurement": "treinen"
+      },
+      "board_row": {
+        "name": "Vertrek {number}"
       },
       "departure": {
         "name": "Vertrek"
+      },
+      "direction": {
+        "name": "Richting trein"
       },
       "planned_departure": {
         "name": "Gepland vertrek"

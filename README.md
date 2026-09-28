@@ -71,7 +71,8 @@ Setup has three parts: your API key, a station, and the destinations you want to
 2. Paste your API key.
 3. Choose the station you want to see departures for.
 
-The station is added right away, with a **Departures** sensor that holds the full departure board.
+The station is added right away as a departure board: the next 5 trains, each as a readable sensor such as
+`08:01 +4 Rotterdam Centraal · track 4 (was 3)`.
 To add another station, add the integration again. It remembers your API key.
 
 ### 2. Follow destinations
@@ -108,22 +109,28 @@ because the integration searches ahead until it finds the next train.
 
 ### Station
 
-| Entity | Description |
-| --- | --- |
-| `sensor.<station>_departures` | Expected time of the next train leaving the station. |
+| Entity | Example | Description |
+| --- | --- | --- |
+| `sensor.<station>_departure_1` … `_5` | `08:01 +4 Rotterdam Centraal · track 4 (was 3)` | The next 5 trains, like the screens on the platform: planned time, delay, final destination, and track. A track change shows the old track; a cancelled train shows `cancelled`. |
+| `sensor.<station>_departure_board` | `20` | Number of upcoming trains on the board, with the full board as attributes. |
 
-Attributes:
+Each `departure_N` sensor has the details as attributes: `planned`, `actual`, `delay`, `track`,
+`planned_track`, `track_changed`, `direction`, `train`, `status`, and `message`.
 
-- `departures`: the next 20 trains, each with `planned`, `actual`, `delay`, `track`, `planned_track`,
-  `track_changed`, `direction`, `train`, `status`, and `message`.
-- `next_by_destination`: the first train to each destination on the board, keyed by destination, with the same
-  fields.
+The `departure_board` sensor has two attributes for dashboards:
+
+- `departures`: the next 20 trains, with the same fields.
+- `next_by_destination`: the first train to each destination on the board, keyed by destination.
+
+The words *track* and *cancelled* in the readable text follow your Home Assistant language (Dutch: *spoor*,
+*rijdt niet*).
 
 ### Followed destination
 
 | Entity | Example | Description |
 | --- | --- | --- |
 | `sensor.<destination>_departure` | `08:05` | Expected departure time from your station, including delay. |
+| `sensor.<destination>_train_direction` | `Rotterdam Centraal` | Final destination of the train you take, as shown on the station screens. |
 | `sensor.<destination>_planned_departure` | `08:01` | Departure time according to the timetable. |
 | `sensor.<destination>_delay` | `4` | Delay in minutes (`0` when on time). |
 | `sensor.<destination>_track` | `4` | Track the train actually departs from. |
@@ -147,7 +154,22 @@ and why, instead of it quietly disappearing.
 
 Replace `station` and `destination` in the entity IDs with your own.
 
-### Dashboard: full departure board
+### Dashboard: departure board
+
+The quickest option is an entities card with the 5 departure sensors:
+
+```yaml
+type: entities
+title: Departures
+entities:
+  - sensor.station_departure_1
+  - sensor.station_departure_2
+  - sensor.station_departure_3
+  - sensor.station_departure_4
+  - sensor.station_departure_5
+```
+
+Or a table with more trains:
 
 ```yaml
 type: markdown
@@ -155,7 +177,7 @@ title: Departures
 content: |
   | Time | | To | Track |
   |:--|:--|:--|:--|
-  {% for d in state_attr('sensor.station_departures', 'departures')[:10] %}
+  {% for d in state_attr('sensor.station_departure_board', 'departures')[:10] %}
   {%- set time = as_timestamp(d.planned) | timestamp_custom('%H:%M') %}
   {%- set info = '❌' if d.status == 'cancelled' else ('+' ~ d.delay if d.delay else '') %}
   {%- set track = '**' ~ d.track ~ '** ⚠️' if d.track_changed else d.track %}
@@ -171,6 +193,8 @@ title: Next train
 entities:
   - entity: sensor.destination_planned_departure
     name: Departs
+  - entity: sensor.destination_train_direction
+    name: Train to
   - entity: sensor.destination_delay
     name: Delay
   - entity: sensor.destination_track

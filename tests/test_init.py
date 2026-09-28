@@ -79,8 +79,20 @@ async def test_user_flow_invalid_key(
 @pytest.mark.freeze_time(EVENING)
 async def test_departure_board(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
     await _setup(hass, _entry())
-    state = hass.states.get("sensor.ede_wageningen_departures")
-    assert state.state == "2026-09-28T21:47:00+00:00"
+    assert hass.states.get("sensor.ede_wageningen_departure_1").state == (
+        "23:40 +7 Amsterdam Centraal · track 4 (was 3)"
+    )
+    assert hass.states.get("sensor.ede_wageningen_departure_2").state == (
+        "23:50 Nijmegen · cancelled"
+    )
+    assert hass.states.get("sensor.ede_wageningen_departure_3").state == (
+        "23:53 Amersfoort Centraal · track 1"
+    )
+    row = hass.states.get("sensor.ede_wageningen_departure_1")
+    assert row.attributes["direction"] == "Amsterdam Centraal"
+
+    state = hass.states.get("sensor.ede_wageningen_departure_board")
+    assert state.state == "7"
     departures = state.attributes["departures"]
     assert len(departures) == 7
     assert departures[0]["delay"] == 7
@@ -109,6 +121,7 @@ async def test_destination_sensors(hass: HomeAssistant, ns_api: AiohttpClientMoc
     departure = hass.states.get("sensor.amsterdam_zuid_departure")
     assert departure.state == "2026-09-29T05:55:00+00:00"
     assert departure.attributes["direction"] == "Den Haag Centraal"
+    assert hass.states.get("sensor.amsterdam_zuid_train_direction").state == "Den Haag Centraal"
     assert len(departure.attributes["upcoming"]) == 5
     assert hass.states.get("sensor.amsterdam_zuid_transfers").state == "0"
 
