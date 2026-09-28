@@ -1,3 +1,5 @@
+<img src="custom_components/ns_departures/brand/icon.png" alt="NS" width="96" align="right">
+
 # NS Departures
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
@@ -178,6 +180,7 @@ actions:
 ## Minimum required version
 
 - Home Assistant 2025.9.0
+- Home Assistant 2026.3.0 or newer to show the NS icon in the UI
 
 ## Language translations
 
@@ -189,6 +192,8 @@ and paste your changes there.
 
 This is not an official NS product. Departure data comes from the
 [NS API portal](https://apiportal.ns.nl) and falls under its terms of use.
+The NS name and logo are trademarks of Nederlandse Spoorwegen and are used here only to identify
+the data source.
 
 ## License
 
