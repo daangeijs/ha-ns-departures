@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "NS API-key",
-        "description": "Vul je NS API-key in (de primary key van je **Ns-App** abonnement op [apiportal.ns.nl](https://apiportal.ns.nl)).",
+        "description": "Vul je NS API-key in (de primary key van je **Ns-App** abonnement op [apiportal.ns.nl]({portal_url})).",
         "data": {
           "api_key": "API-key"
         }

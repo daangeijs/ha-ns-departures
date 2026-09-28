@@ -44,6 +44,7 @@ from .const import (
 from .coordinator import NSConfigEntry
 from .models import Station
 
+PORTAL_URL = "https://apiportal.ns.nl"
 API_KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
 
@@ -92,6 +93,7 @@ class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {vol.Required(CONF_API_KEY, default=default_key): API_KEY_SELECTOR}
             ),
+            description_placeholders={"portal_url": PORTAL_URL},
             errors=errors,
         )
 

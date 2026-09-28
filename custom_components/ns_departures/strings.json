@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "NS API key",
-        "description": "Enter your NS API key (the primary key of your **Ns-App** subscription on [apiportal.ns.nl](https://apiportal.ns.nl)).",
+        "description": "Enter your NS API key (the primary key of your **Ns-App** subscription on [apiportal.ns.nl]({portal_url})).",
         "data": {
           "api_key": "API key"
         }
