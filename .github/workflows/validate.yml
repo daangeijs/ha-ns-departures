@@ -14,8 +14,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # Topics and brand icon are only required for the HACS default store.
-          ignore: brands
 
   hassfest:
     runs-on: ubuntu-latest
