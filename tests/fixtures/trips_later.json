@@ -1,0 +1,116 @@
+{
+  "trips": [
+    {
+      "legs": [
+        {
+          "name": "IC 3124",
+          "direction": "Den Haag Centraal",
+          "cancelled": false,
+          "origin": {
+            "name": "Ede-Wageningen",
+            "rawLocationName": "Ede-Wageningen",
+            "lng": 5.67305564880371,
+            "lat": 52.0277786254883,
+            "countryCode": "NL",
+            "uicCode": "8400200",
+            "uicCdCode": "118400200",
+            "stationCode": "ED",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T08:25:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T08:25:00+0200",
+            "plannedTrack": "3",
+            "actualTrack": "3",
+            "checkinStatus": "CHECKIN",
+            "notes": []
+          },
+          "destination": {
+            "name": "Amsterdam Zuid",
+            "rawLocationName": "Amsterdam Zuid",
+            "lng": 4.872356,
+            "lat": 52.338889,
+            "countryCode": "NL",
+            "uicCode": "8400061",
+            "uicCdCode": "118400061",
+            "stationCode": "ASDZ",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T09:14:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T09:14:00+0200",
+            "plannedTrack": "3",
+            "actualTrack": "3",
+            "exitSide": "RIGHT",
+            "checkinStatus": "CHECKOUT",
+            "notes": []
+          },
+          "product": {
+            "number": "3124",
+            "categoryCode": "IC",
+            "operatorName": "NS"
+          }
+        }
+      ],
+      "transfers": 0,
+      "status": "NORMAL",
+      "plannedDurationInMinutes": 49
+    },
+    {
+      "legs": [
+        {
+          "name": "IC 3224",
+          "direction": "Rotterdam Centraal",
+          "cancelled": false,
+          "origin": {
+            "name": "Ede-Wageningen",
+            "rawLocationName": "Ede-Wageningen",
+            "lng": 5.67305564880371,
+            "lat": 52.0277786254883,
+            "countryCode": "NL",
+            "uicCode": "8400200",
+            "uicCdCode": "118400200",
+            "stationCode": "ED",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T08:31:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T08:31:00+0200",
+            "plannedTrack": "3",
+            "actualTrack": "3",
+            "checkinStatus": "CHECKIN",
+            "notes": []
+          },
+          "destination": {
+            "name": "Amsterdam Zuid",
+            "rawLocationName": "Amsterdam Zuid",
+            "lng": 4.872356,
+            "lat": 52.338889,
+            "countryCode": "NL",
+            "uicCode": "8400061",
+            "uicCdCode": "118400061",
+            "stationCode": "ASDZ",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T09:24:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T09:24:00+0200",
+            "plannedTrack": "3",
+            "actualTrack": "3",
+            "exitSide": "RIGHT",
+            "checkinStatus": "CHECKOUT",
+            "notes": []
+          },
+          "product": {
+            "number": "3224",
+            "categoryCode": "IC",
+            "operatorName": "NS"
+          }
+        }
+      ],
+      "transfers": 0,
+      "status": "NORMAL",
+      "plannedDurationInMinutes": 53
+    }
+  ]
+}

@@ -10,7 +10,7 @@
       },
       "station": {
         "title": "Vertrekstation",
-        "description": "Kies het station waar je vertrekt. Daarna voeg je de treinen toe die je wilt volgen.",
+        "description": "Kies het station waarvan je de vertrektijden wilt zien. Daarna kun je bestemmingen toevoegen die je vanaf dit station wilt volgen.",
         "data": {
           "station": "Station"
         }
@@ -32,48 +32,70 @@
       "reauth_successful": "API-key bijgewerkt."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update-interval",
+        "description": "NS staat **{limit} verzoeken per 5 minuten** per API-key toe, gedeeld door alle stations die de key gebruiken. Dit station doet **{requests}** verzoeken per update (het vertrekbord plus één per gevolgde bestemming). Met het huidige interval gebruiken al je stations samen ongeveer **{usage}** verzoeken per 5 minuten.",
+        "data": {
+          "scan_interval": "Update elke"
+        },
+        "data_description": {
+          "scan_interval": "In seconden, tussen 15 en 3600. Standaard: 60."
+        }
+      }
+    },
+    "error": {
+      "rate_limit": "Met dit interval ga je over de NS-limiet voor je API-key. Kies een langer interval."
+    }
+  },
   "config_subentries": {
-    "line": {
+    "destination": {
       "initiate_flow": {
-        "user": "Trein volgen"
+        "user": "Bestemming volgen"
       },
-      "entry_type": "Gevolgde trein",
+      "entry_type": "Bestemming",
       "step": {
         "user": {
-          "title": "Trein volgen vanaf {station}",
-          "description": "Kies een of meer bestemmingen. De sensoren tonen de eerste trein vanaf {station} die naar een van die bestemmingen gaat.\n\nNu op het vertrekbord: {departing}",
+          "title": "Bestemming volgen vanaf {station}",
+          "description": "De sensoren tonen de eerstvolgende trein vanaf {station} die je naar deze bestemming brengt, net als de reisplanner op ns.nl. Rijdt er vandaag niets meer, dan zie je de eerste trein van morgen.",
           "data": {
-            "name": "Naam",
-            "destinations": "Bestemmingen",
-            "include_via": "Ook treinen die onderweg bij een bestemming stoppen"
+            "destination": "Bestemming",
+            "direct_only": "Alleen directe treinen"
           },
           "data_description": {
-            "name": "Gebruikt voor de apparaat- en entiteitsnamen, bijv. \"Den Helder\".",
-            "destinations": "Wordt vergeleken met de eindbestemming van elke trein.",
-            "include_via": "Uit: alleen treinen die eindigen op een bestemming. Aan: ook treinen die er langs komen, bijv. kies Utrecht Centraal voor elke trein naar Utrecht."
+            "destination": "Het station waar je naartoe wilt.",
+            "direct_only": "Uit: de eerstvolgende trein op de snelste route, eventueel met overstap. Aan: alleen treinen die er zonder overstap komen."
           }
         },
         "reconfigure": {
-          "title": "Gevolgde trein wijzigen",
-          "description": "Nu op het vertrekbord van {station}: {departing}",
+          "title": "Bestemming wijzigen",
+          "description": "De sensoren tonen de eerstvolgende trein vanaf {station} die je naar deze bestemming brengt, net als de reisplanner op ns.nl. Rijdt er vandaag niets meer, dan zie je de eerste trein van morgen.",
           "data": {
-            "name": "Naam",
-            "destinations": "Bestemmingen",
-            "include_via": "Ook treinen die onderweg bij een bestemming stoppen"
+            "destination": "Bestemming",
+            "direct_only": "Alleen directe treinen"
+          },
+          "data_description": {
+            "destination": "Het station waar je naartoe wilt.",
+            "direct_only": "Uit: de eerstvolgende trein op de snelste route, eventueel met overstap. Aan: alleen treinen die er zonder overstap komen."
           }
         }
       },
       "error": {
-        "no_destinations": "Kies minstens één bestemming."
+        "same_station": "Kies een ander station dan het vertrekstation.",
+        "already_followed": "Je volgt deze bestemming al met deze instellingen."
       },
       "abort": {
         "entry_not_loaded": "Het station is niet geladen. Controleer de integratie op fouten en probeer het opnieuw.",
-        "reconfigure_successful": "Gevolgde trein bijgewerkt."
+        "reconfigure_successful": "Bestemming bijgewerkt."
       }
     }
   },
   "entity": {
     "sensor": {
+      "departures": {
+        "name": "Vertrektijden"
+      },
       "departure": {
         "name": "Vertrek"
       },
@@ -96,6 +118,12 @@
       },
       "message": {
         "name": "Melding"
+      },
+      "arrival": {
+        "name": "Aankomst"
+      },
+      "transfers": {
+        "name": "Overstappen"
       }
     },
     "binary_sensor": {

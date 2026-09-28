@@ -1,0 +1,109 @@
+{
+  "trips": [
+    {
+      "legs": [
+        {
+          "name": "IC 3022",
+          "direction": "Den Helder",
+          "cancelled": false,
+          "origin": {
+            "name": "Ede-Wageningen",
+            "rawLocationName": "Ede-Wageningen",
+            "lng": 5.67305564880371,
+            "lat": 52.0277786254883,
+            "countryCode": "NL",
+            "uicCode": "8400200",
+            "uicCdCode": "118400200",
+            "stationCode": "ED",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T08:12:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T08:12:00+0200",
+            "plannedTrack": "3",
+            "actualTrack": "3",
+            "checkinStatus": "CHECKIN",
+            "notes": []
+          },
+          "destination": {
+            "name": "Utrecht Centraal",
+            "rawLocationName": "Utrecht Centraal",
+            "lng": 5.11027765274048,
+            "lat": 52.0888900756836,
+            "countryCode": "NL",
+            "uicCode": "8400621",
+            "uicCdCode": "118400621",
+            "stationCode": "UT",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T08:36:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T08:36:00+0200",
+            "plannedTrack": "5",
+            "actualTrack": "5",
+            "exitSide": "LEFT",
+            "checkinStatus": "NOTHING",
+            "notes": []
+          },
+          "product": {
+            "number": "3022",
+            "categoryCode": "IC",
+            "operatorName": "NS"
+          }
+        },
+        {
+          "name": "IC 3524",
+          "direction": "Dordrecht",
+          "cancelled": false,
+          "origin": {
+            "name": "Utrecht Centraal",
+            "rawLocationName": "Utrecht Centraal",
+            "lng": 5.11027765274048,
+            "lat": 52.0888900756836,
+            "countryCode": "NL",
+            "uicCode": "8400621",
+            "uicCdCode": "118400621",
+            "stationCode": "UT",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T08:41:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T08:41:00+0200",
+            "plannedTrack": "7",
+            "actualTrack": "7",
+            "checkinStatus": "NOTHING",
+            "notes": []
+          },
+          "destination": {
+            "name": "Amsterdam Zuid",
+            "rawLocationName": "Amsterdam Zuid",
+            "lng": 4.872356,
+            "lat": 52.338889,
+            "countryCode": "NL",
+            "uicCode": "8400061",
+            "uicCdCode": "118400061",
+            "stationCode": "ASDZ",
+            "type": "STATION",
+            "plannedTimeZoneOffset": 120,
+            "plannedDateTime": "2026-09-29T09:04:00+0200",
+            "actualTimeZoneOffset": 120,
+            "actualDateTime": "2026-09-29T09:04:00+0200",
+            "plannedTrack": "4",
+            "actualTrack": "4",
+            "exitSide": "LEFT",
+            "checkinStatus": "CHECKOUT",
+            "notes": []
+          },
+          "product": {
+            "number": "3524",
+            "categoryCode": "IC",
+            "operatorName": "NS"
+          }
+        }
+      ],
+      "transfers": 1,
+      "status": "NORMAL",
+      "plannedDurationInMinutes": 52
+    }
+  ]
+}

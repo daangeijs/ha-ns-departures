@@ -1,12 +1,12 @@
 """Data models for NS Departures.
 
-Pure Python with no Home Assistant imports, so the parsing and matching
-logic can be unit tested without a Home Assistant installation.
+Pure Python with no Home Assistant imports, so the parsing logic can be
+unit tested without a Home Assistant installation.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
@@ -20,68 +20,86 @@ class DepartureStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+def _parse_time(value: str | None) -> datetime | None:
+    return datetime.fromisoformat(value) if value else None
+
+
 @dataclass(frozen=True, slots=True)
 class Station:
     """An NS station."""
 
     code: str
-    uic: str
     name: str
-    medium_name: str
     has_departures: bool
 
     @classmethod
     def from_api(cls, data: dict[str, Any]) -> Station:
-        names = data["namen"]
         return cls(
             code=data["code"],
-            uic=data["UICCode"],
-            name=names["lang"],
-            medium_name=names["middel"],
+            name=data["namen"]["lang"],
             has_departures=data.get("heeftVertrektijden", False),
         )
 
 
 @dataclass(frozen=True, slots=True)
 class Departure:
-    """A single departure from the departure board."""
+    """A train leaving the station: from the departure board or a planned trip."""
 
     direction: str
     train_category: str
     train_number: str
-    operator: str
     planned: datetime
     actual: datetime
     planned_track: str | None
     actual_track: str | None
     cancelled: bool
-    route_uics: tuple[str, ...]
-    route_names: tuple[str, ...]
     messages: tuple[str, ...]
 
     @classmethod
-    def from_api(cls, data: dict[str, Any]) -> Departure:
+    def from_board(cls, data: dict[str, Any]) -> Departure:
+        """Parse an item of the /departures response."""
         product = data.get("product", {})
         planned = datetime.fromisoformat(data["plannedDateTime"])
-        actual_raw = data.get("actualDateTime")
         planned_track = data.get("plannedTrack")
-        route = data.get("routeStations", [])
         return cls(
             direction=data["direction"],
             train_category=data.get("trainCategory", ""),
             train_number=product.get("number", ""),
-            operator=product.get("operatorName", ""),
             planned=planned,
-            actual=datetime.fromisoformat(actual_raw) if actual_raw else planned,
+            actual=_parse_time(data.get("actualDateTime")) or planned,
             planned_track=planned_track,
             actual_track=data.get("actualTrack") or planned_track,
             cancelled=data.get("cancelled", False),
-            route_uics=tuple(s["uicCode"] for s in route),
-            route_names=tuple(s["mediumName"] for s in route),
             messages=tuple(
                 m["message"] for m in data.get("messages", []) if m.get("message")
             ),
         )
+
+    @classmethod
+    def from_leg(cls, leg: dict[str, Any], trip_messages: tuple[str, ...]) -> Departure:
+        """Parse the first leg of a /trips result."""
+        product = leg.get("product", {})
+        origin = leg["origin"]
+        planned = datetime.fromisoformat(origin["plannedDateTime"])
+        planned_track = origin.get("plannedTrack")
+        leg_messages = tuple(
+            m["text"] for m in leg.get("messages", []) if m.get("text")
+        )
+        return cls(
+            direction=leg.get("direction", ""),
+            train_category=product.get("categoryCode", ""),
+            train_number=product.get("number", ""),
+            planned=planned,
+            actual=_parse_time(origin.get("actualDateTime")) or planned,
+            planned_track=planned_track,
+            actual_track=origin.get("actualTrack") or planned_track,
+            cancelled=leg.get("cancelled", False),
+            messages=trip_messages + leg_messages,
+        )
+
+    @property
+    def train(self) -> str:
+        return f"{self.train_category} {self.train_number}".strip()
 
     @property
     def delay_minutes(self) -> int:
@@ -106,53 +124,65 @@ class Departure:
 
     @property
     def message(self) -> str | None:
-        """All NS remarks for this departure, e.g. the reason it is cancelled."""
-        return " ".join(self.messages) or None
+        """All NS remarks, e.g. the reason a train is cancelled."""
+        return " ".join(dict.fromkeys(self.messages)) or None
 
     def as_dict(self) -> dict[str, Any]:
-        """Compact representation for the `upcoming` attribute."""
         return {
             "planned": self.planned.isoformat(),
             "actual": self.actual.isoformat(),
             "delay": self.delay_minutes,
             "track": self.actual_track,
+            "planned_track": self.planned_track,
             "track_changed": self.track_changed,
             "direction": self.direction,
-            "train": f"{self.train_category} {self.train_number}".strip(),
+            "train": self.train,
             "status": self.status.value,
             "message": self.message,
         }
 
 
 @dataclass(frozen=True, slots=True)
-class Line:
-    """A set of destinations a user follows from their station.
+class Trip:
+    """A journey to the followed destination, as advised by the NS planner."""
 
-    A departure matches when its final destination is one of the chosen
-    stations, or, with `include_via`, when it calls at one of them on the way.
-    """
-
-    names: frozenset[str]
-    uics: frozenset[str]
-    include_via: bool
+    departure: Departure
+    arrival_planned: datetime
+    arrival_actual: datetime
+    transfers: int
+    route: tuple[str, ...]
 
     @classmethod
-    def from_codes(
-        cls, codes: list[str], stations: dict[str, Station], include_via: bool
-    ) -> Line:
-        chosen = [stations[code] for code in codes if code in stations]
+    def from_api(cls, data: dict[str, Any]) -> Trip:
+        legs = data["legs"]
+        primary = data.get("primaryMessage") or {}
+        trip_messages = tuple(
+            text
+            for text in (primary.get("title"), (primary.get("message") or {}).get("text"))
+            if text
+        )
+        departure = Departure.from_leg(legs[0], trip_messages)
+        if data.get("status") == "CANCELLED" and not departure.cancelled:
+            departure = replace(departure, cancelled=True)
+        destination = legs[-1]["destination"]
+        arrival_planned = datetime.fromisoformat(destination["plannedDateTime"])
         return cls(
-            names=frozenset(
-                name for s in chosen for name in (s.name, s.medium_name)
+            departure=departure,
+            arrival_planned=arrival_planned,
+            arrival_actual=_parse_time(destination.get("actualDateTime"))
+            or arrival_planned,
+            transfers=data.get("transfers", len(legs) - 1),
+            # Origin, every transfer station, then the destination.
+            route=tuple(
+                [legs[0]["origin"]["name"]] + [leg["destination"]["name"] for leg in legs]
             ),
-            uics=frozenset(s.uic for s in chosen),
-            include_via=include_via,
         )
 
-    def matches(self, departure: Departure) -> bool:
-        if departure.direction in self.names:
-            return True
-        return self.include_via and not self.uics.isdisjoint(departure.route_uics)
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            **self.departure.as_dict(),
+            "arrival": self.arrival_actual.isoformat(),
+            "transfers": self.transfers,
+            "route": list(self.route),
+        }
 
-    def filter(self, departures: list[Departure]) -> list[Departure]:
-        return [d for d in departures if self.matches(d)]

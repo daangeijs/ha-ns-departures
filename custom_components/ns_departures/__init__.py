@@ -1,6 +1,8 @@
-"""NS Departures: follow the next train to chosen destinations from a station."""
+"""NS Departures: live departures and the next train to chosen destinations."""
 
 from __future__ import annotations
+
+import asyncio
 
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
@@ -8,7 +10,8 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import NSAuthError, NSClient, NSConnectionError
-from .coordinator import NSConfigEntry, NSData, NSDeparturesCoordinator
+from .const import SUBENTRY_TYPE_DESTINATION
+from .coordinator import DepartureBoardCoordinator, NSConfigEntry, NSData, TripsCoordinator
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
@@ -22,15 +25,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: NSConfigEntry) -> bool:
     except NSConnectionError as err:
         raise ConfigEntryNotReady(str(err)) from err
 
-    coordinator = NSDeparturesCoordinator(hass, entry, client)
-    await coordinator.async_config_entry_first_refresh()
-
-    entry.runtime_data = NSData(
+    data = NSData(
         client=client,
-        coordinator=coordinator,
         stations={s.code: s for s in stations},
+        board=DepartureBoardCoordinator(hass, entry, client),
+        trips={
+            subentry_id: TripsCoordinator(hass, entry, client, subentry)
+            for subentry_id, subentry in entry.subentries.items()
+            if subentry.subentry_type == SUBENTRY_TYPE_DESTINATION
+        },
     )
-    # Adding, changing or removing a followed line reloads the entry.
+    await asyncio.gather(
+        data.board.async_config_entry_first_refresh(),
+        *(c.async_config_entry_first_refresh() for c in data.trips.values()),
+    )
+    entry.runtime_data = data
+
+    # Changing options or adding, changing or removing a destination reloads the entry.
     entry.async_on_unload(entry.add_update_listener(_async_reload))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

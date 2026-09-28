@@ -1,7 +1,7 @@
 """Config flow for NS Departures.
 
-The config entry holds the API key and the departure station. Each train
-the user wants to follow is a `line` subentry with its own destinations.
+The config entry holds the API key and the departure station. Every
+destination the user follows is a subentry of that station.
 """
 
 from __future__ import annotations
@@ -17,13 +17,17 @@ from homeassistant.config_entries import (
     ConfigFlow,
     ConfigFlowResult,
     ConfigSubentryFlow,
+    OptionsFlow,
     SubentryFlowResult,
 )
-from homeassistant.const import CONF_API_KEY, CONF_NAME
-from homeassistant.core import callback
+from homeassistant.const import CONF_API_KEY
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -35,17 +39,38 @@ from homeassistant.helpers.selector import (
 
 from .api import NSAuthError, NSClient, NSConnectionError
 from .const import (
-    CONF_DESTINATIONS,
-    CONF_INCLUDE_VIA,
+    CONF_DESTINATION,
+    CONF_DIRECT_ONLY,
+    CONF_SCAN_INTERVAL,
     CONF_STATION,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    SUBENTRY_TYPE_LINE,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+    SUBENTRY_TYPE_DESTINATION,
 )
 from .coordinator import NSConfigEntry
 from .models import Station
 
 PORTAL_URL = "https://apiportal.ns.nl"
 API_KEY_SELECTOR = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
+
+# The free NS tier allows this many requests per 5 minutes per API key.
+RATE_LIMIT = 300
+
+
+def _station_selector(stations: list[Station]) -> SelectSelector:
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[
+                SelectOptionDict(value=s.code, label=s.name)
+                for s in stations
+                if s.has_departures
+            ],
+            mode=SelectSelectorMode.DROPDOWN,
+            sort=True,
+        )
+    )
 
 
 class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -57,12 +82,17 @@ class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
         self._api_key: str | None = None
         self._stations: list[Station] = []
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> NSOptionsFlow:
+        return NSOptionsFlow()
+
     @classmethod
     @callback
     def async_get_supported_subentry_types(
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
-        return {SUBENTRY_TYPE_LINE: LineSubentryFlow}
+        return {SUBENTRY_TYPE_DESTINATION: DestinationSubentryFlow}
 
     async def _async_fetch_stations(self, api_key: str) -> str | None:
         """Validate the key by loading the station list; return an error key."""
@@ -100,9 +130,8 @@ class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_station(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        stations = {s.code: s for s in self._stations if s.has_departures}
         if user_input is not None:
-            station = stations[user_input[CONF_STATION]]
+            station = next(s for s in self._stations if s.code == user_input[CONF_STATION])
             await self.async_set_unique_id(station.code)
             self._abort_if_unique_id_configured()
             return self.async_create_entry(
@@ -113,18 +142,7 @@ class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="station",
             data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_STATION): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(value=s.code, label=s.name)
-                                for s in stations.values()
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                            sort=True,
-                        )
-                    )
-                }
+                {vol.Required(CONF_STATION): _station_selector(self._stations)}
             ),
         )
 
@@ -152,90 +170,123 @@ class NSDeparturesConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-class LineSubentryFlow(ConfigSubentryFlow):
-    """Add or change a followed line: a name plus one or more destinations."""
+def _requests_per_update(entry: ConfigEntry) -> int:
+    """The departure board plus one request per followed destination."""
+    return 1 + sum(
+        1 for s in entry.subentries.values() if s.subentry_type == SUBENTRY_TYPE_DESTINATION
+    )
+
+
+def _key_usage(hass: HomeAssistant, entry: ConfigEntry, interval: float) -> int:
+    """Requests per 5 minutes for all stations sharing this entry's API key,
+    with `entry` polling every `interval` seconds."""
+    total = 0.0
+    for other in hass.config_entries.async_entries(DOMAIN):
+        if other.data[CONF_API_KEY] != entry.data[CONF_API_KEY]:
+            continue
+        seconds = (
+            interval
+            if other.entry_id == entry.entry_id
+            else other.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        )
+        total += _requests_per_update(other) * 300 / seconds
+    return round(total)
+
+
+class NSOptionsFlow(OptionsFlow):
+    """Set how often this station polls NS."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        if user_input is not None:
+            interval = int(user_input[CONF_SCAN_INTERVAL])
+            if _key_usage(self.hass, self.config_entry, interval) <= RATE_LIMIT:
+                return self.async_create_entry(data={CONF_SCAN_INTERVAL: interval})
+            errors[CONF_SCAN_INTERVAL] = "rate_limit"
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_SCAN_INTERVAL, default=interval): NumberSelector(
+                        NumberSelectorConfig(
+                            min=MIN_SCAN_INTERVAL,
+                            max=MAX_SCAN_INTERVAL,
+                            step=1,
+                            unit_of_measurement="s",
+                            mode=NumberSelectorMode.BOX,
+                        )
+                    )
+                }
+            ),
+            description_placeholders={
+                "requests": str(_requests_per_update(self.config_entry)),
+                "usage": str(_key_usage(self.hass, self.config_entry, interval)),
+                "limit": str(RATE_LIMIT),
+            },
+            errors=errors,
+        )
+
+
+class DestinationSubentryFlow(ConfigSubentryFlow):
+    """Follow the next train from the station to one destination."""
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        return await self._async_step_line("user", user_input)
+        return await self._async_step_destination("user", user_input)
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        return await self._async_step_line("reconfigure", user_input)
+        return await self._async_step_destination("reconfigure", user_input)
 
-    async def _async_step_line(
+    async def _async_step_destination(
         self, step_id: str, user_input: dict[str, Any] | None
     ) -> SubentryFlowResult:
         entry: NSConfigEntry = self._get_entry()
         if entry.state is not ConfigEntryState.LOADED:
             return self.async_abort(reason="entry_not_loaded")
 
-        reconfiguring = step_id == "reconfigure"
+        stations = entry.runtime_data.stations
+        current = self._get_reconfigure_subentry() if step_id == "reconfigure" else None
         errors: dict[str, str] = {}
+
         if user_input is not None:
-            if not user_input[CONF_DESTINATIONS]:
-                errors[CONF_DESTINATIONS] = "no_destinations"
+            if user_input[CONF_DESTINATION] == entry.data[CONF_STATION]:
+                errors[CONF_DESTINATION] = "same_station"
+            elif any(
+                s.data == user_input and s is not current
+                for s in entry.subentries.values()
+            ):
+                errors["base"] = "already_followed"
             else:
-                title = user_input.pop(CONF_NAME)
-                if reconfiguring:
+                title = stations[user_input[CONF_DESTINATION]].name
+                if user_input[CONF_DIRECT_ONLY]:
+                    title = f"{title} (direct)"
+                if current is not None:
                     return self.async_update_and_abort(
-                        entry, self._get_reconfigure_subentry(), title=title, data=user_input
+                        entry, current, title=title, data=user_input
                     )
                 return self.async_create_entry(title=title, data=user_input)
 
-        if reconfiguring:
-            subentry = self._get_reconfigure_subentry()
-            defaults = {CONF_NAME: subentry.title, **subentry.data}
-        else:
-            defaults = {CONF_DESTINATIONS: [], CONF_INCLUDE_VIA: False}
-        if user_input is not None:
-            defaults = {**defaults, **user_input}
-
+        defaults = user_input or (dict(current.data) if current else {CONF_DIRECT_ONLY: False})
         return self.async_show_form(
             step_id=step_id,
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_NAME, default=defaults.get(CONF_NAME, vol.UNDEFINED)
-                    ): str,
+                        CONF_DESTINATION,
+                        default=defaults.get(CONF_DESTINATION, vol.UNDEFINED),
+                    ): _station_selector(list(stations.values())),
                     vol.Required(
-                        CONF_DESTINATIONS, default=defaults[CONF_DESTINATIONS]
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=_destination_options(entry),
-                            multiple=True,
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
-                    vol.Required(
-                        CONF_INCLUDE_VIA, default=defaults[CONF_INCLUDE_VIA]
+                        CONF_DIRECT_ONLY, default=defaults[CONF_DIRECT_ONLY]
                     ): BooleanSelector(),
                 }
             ),
-            description_placeholders={
-                "station": entry.title,
-                "departing": ", ".join(_departing_names(entry)) or "-",
-            },
+            description_placeholders={"station": entry.title},
             errors=errors,
         )
-
-
-def _departing_names(entry: NSConfigEntry) -> list[str]:
-    """Destinations currently on the departure board, in departure order."""
-    data = entry.runtime_data.coordinator.data or []
-    return list(dict.fromkeys(d.direction for d in data))
-
-
-def _destination_options(entry: NSConfigEntry) -> list[SelectOptionDict]:
-    """All stations, with those currently on the departure board listed first."""
-    stations = entry.runtime_data.stations
-    by_name = {s.name: s for s in stations.values()}
-    departing = [by_name[n] for n in _departing_names(entry) if n in by_name]
-    departing_codes = {s.code for s in departing}
-    others = sorted(
-        (s for s in stations.values() if s.code not in departing_codes),
-        key=lambda s: s.name,
-    )
-    return [SelectOptionDict(value=s.code, label=s.name) for s in departing + others]

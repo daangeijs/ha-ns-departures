@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import aiohttp
 
-from .models import Departure, Station
+from .models import Departure, Station, Trip
 
-BASE_URL = "https://gateway.apiportal.ns.nl/reisinformatie-api/api/v2"
+BASE_URL = "https://gateway.apiportal.ns.nl/reisinformatie-api/api"
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 
 
@@ -47,11 +48,21 @@ class NSClient:
             raise NSConnectionError(str(err) or type(err).__name__) from err
 
     async def stations(self) -> list[Station]:
-        data = await self._get("stations")
+        data = await self._get("v2/stations")
         return [Station.from_api(item) for item in data["payload"]]
 
     async def departures(self, station_code: str) -> list[Departure]:
         data = await self._get(
-            "departures", {"station": station_code, "maxJourneys": 40}
+            "v2/departures", {"station": station_code, "maxJourneys": 40}
         )
-        return [Departure.from_api(item) for item in data["payload"]["departures"]]
+        return [Departure.from_board(item) for item in data["payload"]["departures"]]
+
+    async def trips(
+        self, from_code: str, to_code: str, after: datetime | None = None
+    ) -> list[Trip]:
+        """Planner advice, departing from `after` (default: now)."""
+        params = {"fromStation": from_code, "toStation": to_code}
+        if after is not None:
+            params["dateTime"] = after.isoformat()
+        data = await self._get("v3/trips", params)
+        return [Trip.from_api(item) for item in data.get("trips", [])]

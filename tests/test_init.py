@@ -1,9 +1,10 @@
-"""Config flow, line subentries and the resulting entities."""
+"""Config flow, options, destination subentries and the resulting entities."""
 
 from __future__ import annotations
 
+import pytest
 from homeassistant.config_entries import SOURCE_USER, ConfigSubentryData
-from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -11,15 +12,22 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 
 from custom_components.ns_departures.api import BASE_URL
 from custom_components.ns_departures.const import (
-    CONF_DESTINATIONS,
-    CONF_INCLUDE_VIA,
+    CONF_DESTINATION,
+    CONF_DIRECT_ONLY,
+    CONF_SCAN_INTERVAL,
     CONF_STATION,
     DOMAIN,
-    SUBENTRY_TYPE_LINE,
+    SUBENTRY_TYPE_DESTINATION,
 )
 
+from .conftest import load_fixture
 
-def _entry(*lines: tuple[str, list[str]]) -> MockConfigEntry:
+# Before the first train in trips.json (07:55) and the departure board (23:40).
+MORNING = "2026-09-29T07:30:00+02:00"
+EVENING = "2026-09-28T23:30:00+02:00"
+
+
+def _entry(*destinations: tuple[str, bool]) -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
         title="Ede-Wageningen",
@@ -27,14 +35,20 @@ def _entry(*lines: tuple[str, list[str]]) -> MockConfigEntry:
         data={CONF_API_KEY: "key", CONF_STATION: "ED"},
         subentries_data=[
             ConfigSubentryData(
-                subentry_type=SUBENTRY_TYPE_LINE,
-                title=title,
-                data={CONF_DESTINATIONS: codes, CONF_INCLUDE_VIA: False},
+                subentry_type=SUBENTRY_TYPE_DESTINATION,
+                title="Amsterdam Zuid (direct)" if direct else "Amsterdam Zuid",
+                data={CONF_DESTINATION: code, CONF_DIRECT_ONLY: direct},
                 unique_id=None,
             )
-            for title, codes in lines
+            for code, direct in destinations
         ],
     )
+
+
+async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
 
 
 async def test_user_flow(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
@@ -54,73 +68,131 @@ async def test_user_flow(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> No
 async def test_user_flow_invalid_key(
     hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
 ) -> None:
-    aioclient_mock.get(f"{BASE_URL}/stations", status=401)
+    aioclient_mock.get(f"{BASE_URL}/v2/stations", status=401)
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_API_KEY: "bad"}
     )
-    assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
 
 
-async def test_entities(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
-    entry = _entry(("Amsterdam", ["ASD"]), ("Nijmegen", ["NM"]))
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-
-    # Delayed train with a track change.
-    assert hass.states.get("sensor.amsterdam_departure").state == "2026-09-28T21:47:00+00:00"
-    assert hass.states.get("sensor.amsterdam_planned_departure").state == "2026-09-28T21:40:00+00:00"
-    assert hass.states.get("sensor.amsterdam_delay").state == "7"
-    track = hass.states.get("sensor.amsterdam_track")
-    assert track.state == "4"
-    assert track.attributes["planned_track"] == "3"
-    assert track.attributes["track_changed"] is True
-    assert hass.states.get("binary_sensor.amsterdam_track_changed").state == "on"
-    assert hass.states.get("sensor.amsterdam_status").state == "delayed"
-    upcoming = hass.states.get("sensor.amsterdam_departure").attributes["upcoming"]
-    assert len(upcoming) == 2
-
-    # Cancelled train with its reason.
-    assert hass.states.get("sensor.nijmegen_status").state == "cancelled"
-    assert hass.states.get("sensor.nijmegen_message").state == "Rijdt niet door een seinstoring"
-    assert hass.states.get("binary_sensor.nijmegen_track_changed").state == "off"
+@pytest.mark.freeze_time(EVENING)
+async def test_departure_board(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
+    await _setup(hass, _entry())
+    state = hass.states.get("sensor.ede_wageningen_departures")
+    assert state.state == "2026-09-28T21:47:00+00:00"
+    departures = state.attributes["departures"]
+    assert len(departures) == 7
+    assert departures[0]["delay"] == 7
+    assert departures[0]["track_changed"] is True
+    assert departures[1]["status"] == "cancelled"
+    assert departures[1]["message"] == "Rijdt niet door een seinstoring"
+    by_destination = state.attributes["next_by_destination"]
+    assert list(by_destination) == [
+        "Amsterdam Centraal",
+        "Nijmegen",
+        "Amersfoort Centraal",
+        "Arnhem Centraal",
+    ]
+    assert by_destination["Amsterdam Centraal"]["planned"] == "2026-09-28T23:40:00+02:00"
 
 
-async def test_add_line_subentry(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
+@pytest.mark.freeze_time(MORNING)
+async def test_destination_sensors(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
+    await _setup(hass, _entry(("ASDZ", False)))
+
+    # The next train (07:55) is cancelled; the sensors show it with the reason.
+    assert hass.states.get("sensor.amsterdam_zuid_status").state == "cancelled"
+    assert hass.states.get("sensor.amsterdam_zuid_message").state == (
+        "Rijdt niet Door een seinstoring rijdt deze trein niet."
+    )
+    departure = hass.states.get("sensor.amsterdam_zuid_departure")
+    assert departure.state == "2026-09-29T05:55:00+00:00"
+    assert departure.attributes["direction"] == "Den Haag Centraal"
+    assert len(departure.attributes["upcoming"]) == 5
+    assert hass.states.get("sensor.amsterdam_zuid_transfers").state == "0"
+
+
+@pytest.mark.freeze_time("2026-09-29T07:58:00+02:00")
+async def test_delay_and_track_change(
+    hass: HomeAssistant, ns_api: AiohttpClientMocker
+) -> None:
+    await _setup(hass, _entry(("ASDZ", False)))
+    assert hass.states.get("sensor.amsterdam_zuid_planned_departure").state == "2026-09-29T06:01:00+00:00"
+    assert hass.states.get("sensor.amsterdam_zuid_departure").state == "2026-09-29T06:05:00+00:00"
+    assert hass.states.get("sensor.amsterdam_zuid_delay").state == "4"
+    track = hass.states.get("sensor.amsterdam_zuid_track")
+    assert (track.state, track.attributes["planned_track"]) == ("4", "3")
+    assert hass.states.get("binary_sensor.amsterdam_zuid_track_changed").state == "on"
+    assert hass.states.get("sensor.amsterdam_zuid_status").state == "delayed"
+    assert hass.states.get("sensor.amsterdam_zuid_message").state == "None"
+
+
+@pytest.mark.freeze_time("2026-09-29T08:02:00+02:00")
+async def test_direct_only_pages_to_next_direct_train(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    aioclient_mock.get(f"{BASE_URL}/v2/stations", json=load_fixture("stations.json"))
+    aioclient_mock.get(f"{BASE_URL}/v2/departures", json=load_fixture("departures.json"))
+    aioclient_mock.get(
+        f"{BASE_URL}/v3/trips",
+        params={"dateTime": "2026-09-29T08:13:00+02:00"},
+        json=load_fixture("trips_later.json"),
+    )
+    aioclient_mock.get(f"{BASE_URL}/v3/trips", json=load_fixture("trips_transfers.json"))
+
+    await _setup(hass, _entry(("ASDZ", True)))
+    assert hass.states.get("sensor.amsterdam_zuid_direct_planned_departure").state == (
+        "2026-09-29T06:25:00+00:00"
+    )
+    assert hass.states.get("sensor.amsterdam_zuid_direct_transfers").state == "0"
+
+
+async def test_add_destination(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
     entry = _entry()
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await _setup(hass, entry)
 
     result = await hass.config_entries.subentries.async_init(
-        (entry.entry_id, SUBENTRY_TYPE_LINE), context={"source": SOURCE_USER}
+        (entry.entry_id, SUBENTRY_TYPE_DESTINATION), context={"source": SOURCE_USER}
     )
-    assert result["type"] is FlowResultType.FORM
-    assert "Amsterdam Centraal" in result["description_placeholders"]["departing"]
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_DESTINATION: "ED", CONF_DIRECT_ONLY: False}
+    )
+    assert result["errors"] == {CONF_DESTINATION: "same_station"}
 
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        {CONF_NAME: "Richting Amersfoort", CONF_DESTINATIONS: [], CONF_INCLUDE_VIA: False},
+        result["flow_id"], {CONF_DESTINATION: "ASDZ", CONF_DIRECT_ONLY: True}
     )
-    assert result["errors"] == {CONF_DESTINATIONS: "no_destinations"}
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Amsterdam Zuid (direct)"
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.amsterdam_zuid_direct_departure") is not None
 
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        {CONF_NAME: "Richting Amersfoort", CONF_DESTINATIONS: ["AMF"], CONF_INCLUDE_VIA: False},
+
+async def test_options(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
+    entry = _entry(("ASDZ", False))
+    await _setup(hass, entry)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    # Departure board plus one destination, every 60 seconds.
+    assert result["description_placeholders"]["requests"] == "2"
+    assert result["description_placeholders"]["usage"] == "10"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 30}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
-
-    assert hass.states.get("sensor.richting_amersfoort_status").state == "on_time"
-    assert hass.states.get("sensor.richting_amersfoort_track").state == "1"
+    assert entry.options == {CONF_SCAN_INTERVAL: 30}
 
 
-async def test_no_matching_train(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
-    entry = _entry(("Den Helder", ["HDR"]))
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-    assert hass.states.get("sensor.den_helder_departure").state == "unknown"
-    assert hass.states.get("binary_sensor.den_helder_track_changed").state == "unknown"
+async def test_options_rate_limit(hass: HomeAssistant, ns_api: AiohttpClientMocker) -> None:
+    # 16 destinations plus the board: 17 requests every 15 s is 340 per 5 minutes.
+    entry = _entry(*[("ASDZ", False)] * 16)
+    await _setup(hass, entry)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_SCAN_INTERVAL: 15}
+    )
+    assert result["errors"] == {CONF_SCAN_INTERVAL: "rate_limit"}

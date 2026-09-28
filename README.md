@@ -5,31 +5,29 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![Validate](https://img.shields.io/github/actions/workflow/status/daangeijs/ha-ns-departures/validate.yml?style=for-the-badge&label=validate)](https://github.com/daangeijs/ha-ns-departures/actions/workflows/validate.yml)
 
-This integration shows the next train from your station for Home Assistant, using live data from the
-departure board of the Dutch railways (NS). You add a station and then pick the trains you want to follow,
-for example "the intercity to Den Helder" or "any train to Rotterdam or Den Haag". Each followed train gets
-its own sensors with the departure time, delay, track, and status.
-
-It reads the **departure board**, not the journey planner. You always see the actual next train
-that goes to your destination, never a suggested route with transfers.
+This Home Assistant integration shows live train departures from Dutch railway (NS) stations. For every station
+you add, you get the full departure board, like the station page on ns.nl. On top of that you can follow
+destinations: for each one, sensors show the next train that gets you there, including delay, track changes,
+and cancellations.
 
 ## Features
 
-- Add one or more departure stations, all from the UI.
-- Follow as many trains per station as you like, each with one or more destinations.
-- Optionally match trains that call at a destination on the way, not only trains that end there.
-- Shows the planned time, the actual time, and the delay in minutes.
-- Shows the track and flags track changes clearly.
-- Shows when a train is cancelled, along with the reason NS gives.
-- Lists the next 5 matching trains in an attribute for dashboards.
-- One API call per station per minute, well within the free NS limit.
-- Translated into English and Dutch.
+- Departure board for each station: every upcoming train, and the first train to each destination.
+- Follow as many destinations per station as you like.
+- The next train to a destination comes from the NS journey planner, the same one as on ns.nl. It includes
+  trains that need a transfer, or you can limit it to direct trains.
+- Always shows the very next train, even when that one leaves tomorrow morning.
+- Planned time, expected time, and delay in minutes.
+- Track, with a separate sensor that turns on when the track changes.
+- Status (on time, delayed, cancelled) and the NS message, such as the reason a train is cancelled.
+- Adjustable update interval, with a check that you stay within the NS limit.
+- Everything is set up from the UI. Translated into English and Dutch.
 
 ## Installation
 
 ### Step 1: Get an NS API key (free)
 
-The integration needs an API key from the NS API portal. It's free and takes a few minutes.
+The integration needs your own API key from the NS API portal. It's free and takes a few minutes.
 
 1. Go to [apiportal.ns.nl](https://apiportal.ns.nl) and click **Sign up**. Confirm your email address and log in.
 2. Open **API Products** and choose **Ns-App**.
@@ -38,9 +36,6 @@ The integration needs an API key from the NS API portal. It's free and takes a f
 
 That key is what you paste into Home Assistant. You don't need to pick individual APIs. The Ns-App product
 includes the *Reisinformatie API*, which this integration uses.
-
-> The free tier allows 300 requests per 5 minutes. This integration makes 1 request per station per minute,
-> so even 10 stations stay well within the limit.
 
 ### Step 2: Install the integration
 
@@ -66,114 +61,150 @@ restart Home Assistant.
 
 ## Configuration
 
-### Add a station
+Setup has three parts: your API key, a station, and the destinations you want to follow from that station.
+
+### 1. API key and station
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=ns_departures)
 
 1. Go to **Settings → Devices & services → Add integration** and search for **NS Departures**.
 2. Paste your API key.
-3. Choose your departure station, for example *Ede-Wageningen*.
+3. Choose the station you want to see departures for.
 
-Want departures from a second station? Add the integration again. It remembers your API key.
+The station is added right away, with a **Departures** sensor that holds the full departure board.
+To add another station, add the integration again. It remembers your API key.
 
-### Follow a train
+### 2. Follow destinations
 
-Open the station under **Settings → Devices & services → NS Departures** and click **Follow a train**.
+Open the station under **Settings → Devices & services → NS Departures** and click **Follow a destination**.
 
 | Field | What it does |
 | --- | --- |
-| **Name** | Name of the device and its sensors, e.g. `Den Helder` gives `sensor.den_helder_departure`. |
-| **Destinations** | One or more stations. The stations currently on the departure board are listed first, and the form also shows which destinations are leaving right now. |
-| **Also match trains that call at a destination on the way** | Off: only trains whose **final destination** is one of your picks. On: also trains that **pass through** one, e.g. pick *Utrecht Centraal* to get every train that stops in Utrecht. |
+| **Destination** | The station you want to travel to. |
+| **Direct trains only** | Off: the next train on the fastest route, which may include a transfer, as on ns.nl. On: only trains that get there without a transfer. |
 
-You can change a followed train later with the **⋮** menu next to it, or remove it there.
+Each destination becomes its own device with the sensors listed below. You can follow the same destination
+twice, once with and once without **Direct trains only**. Change or remove a destination with the **⋮** menu
+next to it.
 
-**Example: Ede-Wageningen, everything towards the Randstad**
+### 3. Update interval (optional)
 
-| Name | Destinations |
-| --- | --- |
-| Den Helder | Den Helder |
-| Rotterdam | Rotterdam Centraal |
-| Den Haag | Den Haag Centraal |
-| Randstad | Den Helder, Rotterdam Centraal, Den Haag Centraal *(first of any of the three)* |
+Open the station and click **Configure** to set how often it updates. The default is every 60 seconds.
+
+NS allows **300 requests per 5 minutes** per API key. Every update of a station uses 1 request for the
+departure board, plus 1 request for each destination you follow. Some examples:
+
+| Stations × destinations | Interval | Requests per 5 minutes |
+| --- | --- | --- |
+| 1 station, 3 destinations | 60 s | 20 |
+| 1 station, 3 destinations | 15 s | 80 |
+| 3 stations, 5 destinations each | 30 s | 180 |
+
+The form shows how many requests all stations using your key make together. If a shorter interval would push
+you over the limit, it tells you so. Late at night a destination can occasionally need a few extra requests,
+because the integration searches ahead until it finds the next train.
 
 ## Entities
 
-Every followed train is a device with these entities (shown here for a train named *Den Helder*):
+### Station
+
+| Entity | Description |
+| --- | --- |
+| `sensor.<station>_departures` | Expected time of the next train leaving the station. |
+
+Attributes:
+
+- `departures`: the next 20 trains, each with `planned`, `actual`, `delay`, `track`, `planned_track`,
+  `track_changed`, `direction`, `train`, `status`, and `message`.
+- `next_by_destination`: the first train to each destination on the board, keyed by destination, with the same
+  fields.
+
+### Followed destination
 
 | Entity | Example | Description |
 | --- | --- | --- |
-| `sensor.den_helder_departure` | `05:48` | Expected departure time, including delay. |
-| `sensor.den_helder_planned_departure` | `05:41` | Departure time according to the timetable. |
-| `sensor.den_helder_delay` | `7` | Delay in minutes (`0` when on time). |
-| `sensor.den_helder_track` | `4` | Track the train actually departs from. |
-| `binary_sensor.den_helder_track_changed` | `on` | `on` when the track differs from the planned track. |
-| `sensor.den_helder_status` | `delayed` | `on_time`, `delayed` or `cancelled`. |
-| `sensor.den_helder_message` | `Rijdt niet door een seinstoring` | Remarks from NS, such as the reason a train is cancelled. *Unknown* when there are none. |
+| `sensor.<destination>_departure` | `08:05` | Expected departure time from your station, including delay. |
+| `sensor.<destination>_planned_departure` | `08:01` | Departure time according to the timetable. |
+| `sensor.<destination>_delay` | `4` | Delay in minutes (`0` when on time). |
+| `sensor.<destination>_track` | `4` | Track the train actually departs from. |
+| `binary_sensor.<destination>_track_changed` | `on` | `on` when the track differs from the planned track. |
+| `sensor.<destination>_status` | `delayed` | `on_time`, `delayed` or `cancelled`. |
+| `sensor.<destination>_message` | `None` | Message from NS, such as the reason a train is cancelled. `None` when there is no message. |
+| `sensor.<destination>_arrival` | `08:53` | Expected arrival time at the destination. |
+| `sensor.<destination>_transfers` | `0` | Number of transfers. |
 
-When no matching train is on the departure board (at night, for example), the sensors show *Unknown*.
+Attributes of `sensor.<destination>_departure`: `direction` (where the train is heading), `train`
+(e.g. `IC 3222`), `transfers`, `route` (your station, any transfer stations, and the destination), and
+`upcoming` (the next 5 options, with the same fields as above plus `arrival`).
 
-**Attributes**
+With **Direct trains only**, the device name and entity IDs end in `_direct`, for example
+`sensor.<destination>_direct_departure`.
 
-- `sensor.*_departure` has `direction`, `train` (e.g. `IC 3084`), `operator`, `route` (stations it calls at),
-  and `upcoming`: the next 5 matching trains, each with `planned`, `actual`, `delay`, `track`,
-  `track_changed`, `direction`, `train`, `status`, and `message`.
-- `sensor.*_track` has `planned_track` and `track_changed`.
-
-A cancelled train stays the "next train" until its departure time has passed, so you see it's not running
-instead of it quietly disappearing.
+A cancelled train stays the "next train" until its departure time has passed, so you see that it doesn't run
+and why, instead of it quietly disappearing.
 
 ## Examples
 
-### Dashboard card
+Replace `station` and `destination` in the entity IDs with your own.
 
-A Markdown card that shows the planned time, the delay, the track (with a warning on a change), and the
-reason for a cancellation:
+### Dashboard: full departure board
 
 ```yaml
 type: markdown
-title: Trains from Ede-Wageningen
-content: >-
-  {% for name in ['den_helder', 'rotterdam', 'den_haag'] %}
-  {%- set dep = 'sensor.' ~ name ~ '_departure' %}
-  {%- if states(dep) not in ['unknown', 'unavailable'] %}
-  {%- set planned = states('sensor.' ~ name ~ '_planned_departure') | as_datetime | as_local %}
-  {%- set delay = states('sensor.' ~ name ~ '_delay') | int(0) %}
-  {%- set status = states('sensor.' ~ name ~ '_status') %}
-  {%- set track = states('sensor.' ~ name ~ '_track') %}
-  **{{ state_attr(dep, 'direction') }}** · {{ planned.strftime('%H:%M') }}
-  {%- if status == 'cancelled' %} ❌ **Cancelled** – {{ states('sensor.' ~ name ~ '_message') }}
-  {%- else %}
-  {%- if delay > 0 %} <font color="red">+{{ delay }}</font>{% endif %}
-   · track {% if is_state('binary_sensor.' ~ name ~ '_track_changed', 'on') %}<font color="orange">**{{ track }}** (changed, was {{ state_attr('sensor.' ~ name ~ '_track', 'planned_track') }})</font>{% else %}{{ track }}{% endif %}
-  {%- endif %}
+title: Departures
+content: |
+  | Time | | To | Track |
+  |:--|:--|:--|:--|
+  {% for d in state_attr('sensor.station_departures', 'departures')[:10] %}
+  {%- set time = as_timestamp(d.planned) | timestamp_custom('%H:%M') %}
+  {%- set info = '❌' if d.status == 'cancelled' else ('+' ~ d.delay if d.delay else '') %}
+  {%- set track = '**' ~ d.track ~ '** ⚠️' if d.track_changed else d.track %}
+  | {{ time }} | {{ info }} | {{ d.direction }} | {{ track }} |
+  {% endfor %}
+```
 
-  {% endif %}
-  {%- endfor %}
+### Dashboard: next train to a destination
+
+```yaml
+type: entities
+title: Next train
+entities:
+  - entity: sensor.destination_planned_departure
+    name: Departs
+  - entity: sensor.destination_delay
+    name: Delay
+  - entity: sensor.destination_track
+    name: Track
+  - entity: binary_sensor.destination_track_changed
+    name: Track changed
+  - entity: sensor.destination_status
+    name: Status
+  - entity: sensor.destination_message
+    name: Message
 ```
 
 ### Notify on a track change or cancellation
 
 ```yaml
-alias: Train to Den Helder changed
+alias: Train track changed or cancelled
 triggers:
   - trigger: state
-    entity_id: binary_sensor.den_helder_track_changed
+    entity_id: binary_sensor.destination_track_changed
     to: "on"
   - trigger: state
-    entity_id: sensor.den_helder_status
+    entity_id: sensor.destination_status
     to: cancelled
 actions:
   - action: notify.notify
     data:
-      title: Train to Den Helder
+      title: Your train
       message: >-
-        {% if is_state('sensor.den_helder_status', 'cancelled') %}
-        The {{ as_timestamp(states('sensor.den_helder_planned_departure')) | timestamp_custom('%H:%M') }}
-        train is cancelled: {{ states('sensor.den_helder_message') }}
+        {% set planned = as_timestamp(states('sensor.destination_planned_departure')) | timestamp_custom('%H:%M') %}
+        {% if is_state('sensor.destination_status', 'cancelled') %}
+        The {{ planned }} train is cancelled: {{ states('sensor.destination_message') }}
         {% else %}
-        Now departs from track {{ states('sensor.den_helder_track') }}
-        (was {{ state_attr('sensor.den_helder_track', 'planned_track') }}).
+        The {{ planned }} train now leaves from track {{ states('sensor.destination_track') }}
+        (was {{ state_attr('sensor.destination_track', 'planned_track') }}).
         {% endif %}
 ```
 

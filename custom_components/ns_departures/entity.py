@@ -1,4 +1,4 @@
-"""Base entity for a followed line."""
+"""Devices and the base entity shared by the platforms."""
 
 from __future__ import annotations
 
@@ -7,43 +7,49 @@ from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import NSDeparturesCoordinator
-from .models import Departure, Line
+from .coordinator import NSConfigEntry, TripsCoordinator
+from .models import Trip
 
 
-class NSLineEntity(CoordinatorEntity[NSDeparturesCoordinator]):
-    """Entity showing the next departure of one followed line.
+def station_device(entry: NSConfigEntry) -> DeviceInfo:
+    """The station itself, holding the departure board sensor."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=entry.title,
+        manufacturer="NS",
+        model="Departure board",
+        entry_type=DeviceEntryType.SERVICE,
+    )
 
-    Every line is its own device, so its entities group together and are
-    named after the line (e.g. `sensor.den_helder_departure`).
-    """
+
+def destination_device(entry: NSConfigEntry, subentry: ConfigSubentry) -> DeviceInfo:
+    """A followed destination, e.g. `Amsterdam Zuid`."""
+    return DeviceInfo(
+        identifiers={(DOMAIN, subentry.subentry_id)},
+        name=subentry.title,
+        manufacturer="NS",
+        model=f"Trains from {entry.title}",
+        entry_type=DeviceEntryType.SERVICE,
+        via_device=(DOMAIN, entry.entry_id),
+    )
+
+
+class FollowedEntity(CoordinatorEntity[TripsCoordinator]):
+    """Entity for the next train to a followed destination."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: NSDeparturesCoordinator,
+        coordinator: TripsCoordinator,
         subentry: ConfigSubentry,
-        line: Line,
         key: str,
     ) -> None:
         super().__init__(coordinator)
-        self._line = line
         self._attr_translation_key = key
         self._attr_unique_id = f"{subentry.subentry_id}_{key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, subentry.subentry_id)},
-            name=subentry.title,
-            manufacturer="NS",
-            model=f"Departures from {coordinator.config_entry.title}",
-            entry_type=DeviceEntryType.SERVICE,
-        )
+        self._attr_device_info = destination_device(coordinator.config_entry, subentry)
 
     @property
-    def departures(self) -> list[Departure]:
-        return self._line.filter(self.coordinator.data or [])
-
-    @property
-    def next_departure(self) -> Departure | None:
-        departures = self.departures
-        return departures[0] if departures else None
+    def upcoming(self) -> list[Trip]:
+        return self.coordinator.upcoming

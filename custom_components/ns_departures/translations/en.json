@@ -10,7 +10,7 @@
       },
       "station": {
         "title": "Departure station",
-        "description": "Pick the station you depart from. You add the trains to follow afterwards.",
+        "description": "Pick the station you want to see departures for. Afterwards you can add the destinations you want to follow from this station.",
         "data": {
           "station": "Station"
         }
@@ -32,48 +32,70 @@
       "reauth_successful": "API key updated."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update interval",
+        "description": "NS allows **{limit} requests per 5 minutes** per API key, shared by every station that uses the key. This station makes **{requests}** requests per update (its departure board plus one per followed destination). At the current interval, all your stations together use about **{usage}** requests per 5 minutes.",
+        "data": {
+          "scan_interval": "Update every"
+        },
+        "data_description": {
+          "scan_interval": "In seconds, between 15 and 3600. Default: 60."
+        }
+      }
+    },
+    "error": {
+      "rate_limit": "This interval would go over the NS limit for your API key. Choose a longer interval."
+    }
+  },
   "config_subentries": {
-    "line": {
+    "destination": {
       "initiate_flow": {
-        "user": "Follow a train"
+        "user": "Follow a destination"
       },
-      "entry_type": "Followed train",
+      "entry_type": "Destination",
       "step": {
         "user": {
-          "title": "Follow a train from {station}",
-          "description": "Pick one or more destinations. The sensors show the first train from {station} that goes to any of them.\n\nOn the departure board right now: {departing}",
+          "title": "Follow a destination from {station}",
+          "description": "The sensors show the next train from {station} that gets you to this destination, just like the journey planner on ns.nl. If there is no train anymore today, you get the first one tomorrow.",
           "data": {
-            "name": "Name",
-            "destinations": "Destinations",
-            "include_via": "Also match trains that call at a destination on the way"
+            "destination": "Destination",
+            "direct_only": "Direct trains only"
           },
           "data_description": {
-            "name": "Used for the device and entity names, e.g. \"Den Helder\".",
-            "destinations": "Matched against the final destination of each train.",
-            "include_via": "Off: only trains that end at a destination. On: also trains passing through one, e.g. pick Utrecht Centraal to get every train to Utrecht."
+            "destination": "The station you want to travel to.",
+            "direct_only": "Off: the next train on the fastest route, which may include transfers. On: only trains that go there without transferring."
           }
         },
         "reconfigure": {
-          "title": "Change followed train",
-          "description": "On the departure board of {station} right now: {departing}",
+          "title": "Change destination",
+          "description": "The sensors show the next train from {station} that gets you to this destination, just like the journey planner on ns.nl. If there is no train anymore today, you get the first one tomorrow.",
           "data": {
-            "name": "Name",
-            "destinations": "Destinations",
-            "include_via": "Also match trains that call at a destination on the way"
+            "destination": "Destination",
+            "direct_only": "Direct trains only"
+          },
+          "data_description": {
+            "destination": "The station you want to travel to.",
+            "direct_only": "Off: the next train on the fastest route, which may include transfers. On: only trains that go there without transferring."
           }
         }
       },
       "error": {
-        "no_destinations": "Pick at least one destination."
+        "same_station": "Pick a station other than the departure station.",
+        "already_followed": "You already follow this destination with these settings."
       },
       "abort": {
         "entry_not_loaded": "The station is not loaded. Check the integration for errors and try again.",
-        "reconfigure_successful": "Followed train updated."
+        "reconfigure_successful": "Destination updated."
       }
     }
   },
   "entity": {
     "sensor": {
+      "departures": {
+        "name": "Departures"
+      },
       "departure": {
         "name": "Departure"
       },
@@ -96,6 +118,12 @@
       },
       "message": {
         "name": "Message"
+      },
+      "arrival": {
+        "name": "Arrival"
+      },
+      "transfers": {
+        "name": "Transfers"
       }
     },
     "binary_sensor": {

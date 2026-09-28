@@ -25,6 +25,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 @pytest.fixture
 def ns_api(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
-    aioclient_mock.get(f"{BASE_URL}/stations", json=load_fixture("stations.json"))
-    aioclient_mock.get(f"{BASE_URL}/departures", json=load_fixture("departures.json"))
+    aioclient_mock.get(f"{BASE_URL}/v2/stations", json=load_fixture("stations.json"))
+    aioclient_mock.get(f"{BASE_URL}/v2/departures", json=load_fixture("departures.json"))
+    aioclient_mock.get(f"{BASE_URL}/v3/trips", json=load_fixture("trips.json"))
     return aioclient_mock

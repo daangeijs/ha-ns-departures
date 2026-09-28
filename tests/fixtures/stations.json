@@ -188,6 +188,47 @@
       "stationType": "MEGA_STATION"
     },
     {
+      "EVACode": "8400061",
+      "UICCode": "8400061",
+      "UICCdCode": "118400061",
+      "cdCode": 61,
+      "code": "ASDZ",
+      "ingangsDatum": "2024-12-15",
+      "heeftFaciliteiten": true,
+      "heeftReisassistentie": true,
+      "heeftVertrektijden": true,
+      "land": "NL",
+      "lat": 52.338889,
+      "lng": 4.872356,
+      "radius": 260,
+      "naderenRadius": 1200,
+      "namen": {
+        "lang": "Amsterdam Zuid",
+        "middel": "Amsterdam Zuid",
+        "kort": "Amsterdm Z"
+      },
+      "synoniemen": [],
+      "nearbyMeLocationId": {
+        "value": "ASDZ",
+        "type": "stationV2"
+      },
+      "sporen": [
+        {
+          "spoorNummer": "1"
+        },
+        {
+          "spoorNummer": "2"
+        },
+        {
+          "spoorNummer": "3"
+        },
+        {
+          "spoorNummer": "4"
+        }
+      ],
+      "stationType": "INTERCITY_STATION"
+    },
+    {
       "EVACode": "8400071",
       "UICCode": "8400071",
       "UICCdCode": "118400071",
